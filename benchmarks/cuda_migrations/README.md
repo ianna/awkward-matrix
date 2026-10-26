@@ -253,8 +253,11 @@ early-error and late-error cases against the CPU kernel before timing. Each
 thread emits its first error only; partial final chunks are supported. A single
 chunk writes status directly, avoiding reduction scratch and its launch.
 
-The Awkward candidate retains chunk 1 as its production default until these GPU
-results justify a choice. This sweep times the internal validation call,
+The Awkward candidate now defaults to chunk 64, selected from the A100 sweep
+on revision `7a465ee94`. Compared with chunk 1, completed latency improved by
+about 37% at 32 rows and 6% at 4096 and 131072 rows, with substantially lower
+pool peaks. Chunk 128 slowed the larger workloads. The sweep continues to
+include chunk 1 as its explicit reference. This sweep times the internal validation call,
 including its 8-byte host status read and completion. It excludes JIT warmup and
 uses a separate allocation-hook pass for actual pool temporary peaks, including
 CCCL workspace. The theoretical error-buffer byte count excludes status and
