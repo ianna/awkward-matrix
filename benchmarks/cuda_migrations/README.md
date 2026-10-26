@@ -244,3 +244,31 @@ python benchmarks/cuda_migrations/public_operations.py compare \
   --baseline results/public/baseline.json --candidate results/public/candidate.json \
   --output results/public/comparison
 ```
+
+## Regular-validation chunk sweep
+
+`regular_chunks.py` compares chunks of 1, 2, 4, 8, 16, 32, 64 and 128 rows,
+for 32, 4096 and 131072 rows and all three offset dtypes. It checks valid,
+early-error and late-error cases against the CPU kernel before timing. Each
+thread emits its first error only; partial final chunks are supported. A single
+chunk writes status directly, avoiding reduction scratch and its launch.
+
+The Awkward candidate retains chunk 1 as its production default until these GPU
+results justify a choice. This sweep times the internal validation call,
+including its 8-byte host status read and completion. It excludes JIT warmup and
+uses a separate allocation-hook pass for actual pool temporary peaks, including
+CCCL workspace. The theoretical error-buffer byte count excludes status and
+workspace. It does not substitute for public-operation or kernel-contract tests.
+
+Update the candidate checkout to the chunk-capable revision, wait for other
+jobs using the shared environment, then submit from CUDA_BENCH:
+
+```bash
+git -C awkward-matrix pull --ff-only
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-regular-chunks.sbatch
+```
+
+Results are `results/JOBNUMBER/regular-chunks/regular-chunks.json` and `.md`.
+Compare completed latency and pool peaks across both short and long inputs
+before choosing a default; reductions in scratch bytes alone are insufficient.
