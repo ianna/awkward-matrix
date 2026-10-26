@@ -1,4 +1,5 @@
-# BSD 3-Clause License; see https://github.com/scikit-hep/awkward/blob/main/LICENSE
+# Copyright (c) 2026, Ianna Osborne
+# SPDX-License-Identifier: BSD-3-Clause
 
 import importlib.util
 import json

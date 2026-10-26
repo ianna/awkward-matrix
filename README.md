@@ -50,15 +50,13 @@ AWKWARD_MATRIX_CHECKOUT=/path/to/awkward python -m pytest -q tests
 GPU execution and published results are separate from implementation and local
 tests. No performance improvement is claimed without measurements.
 
-## Provenance
+## Authorship
 
-Imported from `ianna/awkward`'s `ianna/cuda-migration-validation` branch at
-`59fafa29c`, with small adaptations for this standalone repository. Upstream
-references such as #4463 refer to scikit-hep/awkward. See [NOTICE](NOTICE) for
-retained upstream license and attribution. AI assistance was used in development.
-
+Created by Ianna Osborne for awkward-matrix, with AI assistance. Development
+began on the `ianna/cuda-migration-validation` branch of her Awkward fork; these
+benchmark files are maintained in this repository and are not being contributed
+to Awkward. References such as #4463 refer to scikit-hep/awkward.
 
 ## License
 
 BSD 3-Clause, copyright © 2026 Ianna Osborne. See [LICENSE](LICENSE).
-Imported code retains its original attribution and applicable license notices.
