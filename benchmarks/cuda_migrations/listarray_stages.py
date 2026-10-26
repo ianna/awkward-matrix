@@ -112,6 +112,7 @@ def run(args):
                 tuple(array.dtype.str for array in arrays),
                 args.rows,
                 parameter,
+                chunk_size=args.chunk_size,
             )
             first, status = cp.empty(1, dtype=cp.int64), cp.empty(2, dtype=cp.int64)
             partials = cp.empty(setup.chunks, dtype=cp.int64)
@@ -206,6 +207,7 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--rows", type=int, default=4096)
     parser.add_argument("--width", type=int, default=8)
+    parser.add_argument("--chunk-size", type=int, default=64)
     parser.add_argument(
         "--dtype", choices=["int32", "uint32", "int64"], default="int64"
     )
@@ -216,8 +218,10 @@ def main():
     args = parser.parse_args()
     if (
         args.rows <= 64
+        or args.chunk_size >= args.rows
         or min(
             args.width,
+            args.chunk_size,
             args.warmup,
             args.iterations,
             args.repeats,
@@ -225,7 +229,9 @@ def main():
         )
         < 1
     ):
-        parser.error("Stage profiling requires rows > 64 and positive counts")
+        parser.error(
+            "Stage profiling requires rows > 64, 0 < chunk-size < rows, and positive counts"
+        )
     run(args)
 
 

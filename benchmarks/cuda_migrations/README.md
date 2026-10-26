@@ -309,3 +309,37 @@ python benchmarks/cuda_migrations/listarray_stages.py \
   --checkout /path/to/listarray --output results/listarray-stages \
   --rows 4096 --width 8 --dtype int64
 ```
+
+## Targeted ListArray tuning
+
+`listarray_tuning.py` compares whole implementation calls with validation chunks
+1, 4, 8, 16, 32 and 64 (reference: the current default, 64). It also compares
+current spread lookup with an experimental 32-lane-per-interval writer on all
+three standard shapes. The tiled writer runs only after a device ordering
+check; nonmonotonic intervals keep the deterministic last-writer fallback.
+Neither large-input option changes the production default automatically.
+
+The small jagged production path is separately bounded to at most 64 rows and
+256 output elements, preserving the parallel long-output path. Compare it with
+the ordinary `run-della.sbatch listarray` suite.
+
+The tuning suite includes temporary allocation, rebinding, and the canonical
+16-byte host error-status read in implementation latency. It excludes backend
+lookup/error-context bookkeeping, warmup and CPU parity checks. Pool peaks are
+collected in a separate allocation pass. Timing fixtures are valid; error
+priority and partial writes are checked by the candidate's contract tests.
+
+After updating `listarray` and waiting for other jobs in the shared environment:
+
+```bash
+git -C awkward-matrix pull --ff-only
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-listarray-tuning.sbatch
+```
+
+The job writes `results/JOBNUMBER/listarray-tuning/listarray-tuning.md` and `.json`.
+With `--stages` (enabled by the batch script), it also writes independently
+fenced stage diagnostics and cProfile reports under `stages-chunk-N/`. Stage
+sums are not whole-call predictions. The stage CLI supports `--chunk-size` and
+requires at least two chunks. GPU measurements are required before selecting a
+new validation granularity or enabling the tiled spread writer by default.
