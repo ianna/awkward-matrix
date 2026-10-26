@@ -1,6 +1,6 @@
 # Copyright (c) 2026, Ianna Osborne
 # SPDX-License-Identifier: BSD-3-Clause
-"""Deterministic, resettable workloads for the twelve active #4463 candidates."""
+"""Deterministic, resettable workloads for the eleven #4463 candidates."""
 
 import numpy as np
 
@@ -14,7 +14,6 @@ SUITES = {
     "listoffsetarray": [
         "awkward_ListOffsetArray_drop_none_indexes",
         "awkward_ListOffsetArray_flatten_offsets",
-        "awkward_ListOffsetArray_reduce_local_nextparents_64",
         "awkward_ListOffsetArray_reduce_nonlocal_outstartsstops_64",
         "awkward_ListOffsetArray_toRegularArray",
     ],
@@ -87,12 +86,6 @@ def workloads(suite, rows, width):
             np.where(indexes % 3 == 0, -1, indexes),
             offsets,
             rows + 1,
-            indexes.size,
-        ],
-        "awkward_ListOffsetArray_reduce_local_nextparents_64": [
-            empty(indexes.size),
-            offsets,
-            rows,
             indexes.size,
         ],
         "awkward_ListOffsetArray_reduce_nonlocal_outstartsstops_64": [

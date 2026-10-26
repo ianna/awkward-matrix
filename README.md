@@ -13,7 +13,7 @@ results. Benchmark tooling alone does not establish a speedup or backend parity.
 
 ## CUDA migration validation
 
-The initial harness compares twelve active CUDA migration candidates between
+The initial harness compares eleven CUDA migration candidates between
 an Awkward baseline and candidate checkout. It includes full-buffer parity,
 warmed timing, Nsight tracing, and temporary-allocation accounting. The capture
 includes GPU completion while excluding the harness completion fence from
