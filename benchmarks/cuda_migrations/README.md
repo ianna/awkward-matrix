@@ -275,3 +275,37 @@ sbatch --export=NONE \
 Results are `results/JOBNUMBER/regular-chunks/regular-chunks.json` and `.md`.
 Compare completed latency and pool peaks across both short and long inputs
 before choosing a default; reductions in scratch bytes alone are insufficient.
+
+## ListArray stage diagnostics
+
+`listarray_stages.py` separates warmed validation, compact first-error reduction,
+and guarded write/status packing for advanced indexing and jagged expansion.
+The default is 4096 rows of width 8. It uses preallocated fixed buffers and
+workspace; production rebinding, allocations and host status reads are excluded.
+Every stage is fenced independently, so its completed times must not be summed
+to predict full-call latency. CPU kernel results validate the fixture and final
+outputs. cProfile captures each stage separately after the unprofiled pass.
+
+This diagnostic intentionally holds the candidate's setup lock and bound state
+for its lifetime. It is for isolation of stage costs, not an example of public
+API usage or safe concurrent buffer rebinding. Use the existing kernel harness
+for end-to-end performance and memory comparisons.
+
+After updating `listarray` and waiting for other shared-environment jobs:
+
+```bash
+git -C awkward-matrix pull --ff-only
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-listarray-stages.sbatch
+```
+
+Results appear under `results/JOBNUMBER/listarray-stages/`, including
+`listarray-stages.md`, `.json`, and per-stage `.txt` and `.pstats` profiles.
+No Nsight installation is needed. On another allocated GPU, after installing
+the candidate and matching native wheel:
+
+```bash
+python benchmarks/cuda_migrations/listarray_stages.py \
+  --checkout /path/to/listarray --output results/listarray-stages \
+  --rows 4096 --width 8 --dtype int64
+```
