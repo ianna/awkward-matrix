@@ -106,3 +106,17 @@ def test_timing_excludes_final_fence_from_host(monkeypatch):
     )
     assert result == {"host_us": 3.0, "completion_us": 9.0, "stream_us": 5.0}
     assert events == ["record", "call", "record", "wait", "finish"]
+
+
+def test_finish_before_awkward_context_exists():
+    calls = []
+    stream = SimpleNamespace(ptr=123, synchronize=lambda: calls.append("stream"))
+    cuda = SimpleNamespace(
+        cuda_streamptr_to_contexts={},
+        synchronize_cuda=lambda s: calls.append("awkward"),
+    )
+    dispatch.finish_stream(cuda, stream)
+    assert calls == ["stream"]
+    cuda.cuda_streamptr_to_contexts[123] = object()
+    dispatch.finish_stream(cuda, stream)
+    assert calls == ["stream", "awkward"]

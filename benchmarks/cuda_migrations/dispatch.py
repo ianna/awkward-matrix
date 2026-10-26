@@ -83,6 +83,14 @@ def measure_call(cp, stream, call, finish):
     }
 
 
+def finish_stream(cuda, stream):
+    """Direct compute setup/calls need no Awkward error-context entry."""
+    if stream.ptr in cuda.cuda_streamptr_to_contexts:
+        cuda.synchronize_cuda(stream)
+    else:
+        stream.synchronize()
+
+
 def run(args):
     import awkward as ak
     import cupy as cp
@@ -136,7 +144,7 @@ def run(args):
             )
 
             def finish():
-                cuda.synchronize_cuda(stream)
+                finish_stream(cuda, stream)
 
             finish()
             for call in calls.values():
