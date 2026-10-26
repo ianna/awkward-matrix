@@ -128,3 +128,72 @@ It avoids deprecated `cupyx.allow_synchronize`, which can miss synchronization
 outside CuPy.
 
 The deprecated `awkward_ListOffsetArray_reduce_local_nextparents_64` converter has no live layout callers and is excluded from parity/performance gates. Its raw ABI remains available in Awkward.
+
+## Locate warmed host dispatch overhead
+
+`dispatch.py` diagnoses `flatten_offsets` on the compute candidate. It is a
+separate diagnostic, not a replacement for baseline/candidate performance gates.
+All levels use the same preallocated buffers, nonzero-origin reverse gather,
+item count, and nondefault stream:
+
+1. Backend lookup plus kernel call.
+2. A previously looked-up backend kernel object.
+3. The `_compute` wrapper directly.
+4. The `_listoffsetarray` implementation directly.
+5. `cuda.compute.unary_transform` with a stable iterator/operator/stream adapter.
+6. A retained object from `make_unary_transform`, using the same iterator/op.
+
+Preparation/factory calls and 20 warmup calls per level precede timing. The
+unprofiled pass rotates level order between repeats. Each host interval includes
+only the call; CUDA events measure stream elapsed time, including submission
+gaps. Completion/error-context draining is outside the host interval and happens
+after every invocation, preventing accumulated error contexts from triggering
+periodic internal fences. Completion latency is reported separately.
+
+A subsequent cProfile pass saves both `.pstats` and readable cumulative/self-time
+tables for each level. Completion fences are outside profiling as well. Timing
+numbers do not include cProfile overhead. Inspect these profiles for time in
+backend bookkeeping, argument materialization, op adapters, stream validation,
+iterator state conversion, cache lookup, and native launch calls. Profiles can
+also reveal compilation during the supposedly warmed phase; warmup alone is
+not proof of cache stability. This diagnostic does not instrument compiler-cache
+misses or implement fusion.
+
+The retained direct operator has different setup/reuse behavior from the real
+implementation, which constructs its gather closure and view inside each call.
+Differences between levels are diagnostic, not additive isolated cost estimates
+or a production optimization. Even the prepared API still performs Python-side
+argument/state handling. State buffers stay alive for the entire run; reusing
+these objects with different buffers would require explicit state updates.
+
+Run inside an allocated GPU job after installing the matching candidate and
+native wheel:
+
+```bash
+python benchmarks/cuda_migrations/dispatch.py \
+  --checkout /path/to/candidate --output results/dispatch \
+  --warmup 20 --iterations 100 --repeats 5 --profile-iterations 100
+```
+
+The output contains `dispatch.md`, `dispatch.json` (including environment and
+repeat samples), and per-level `.pstats`/`.txt` profiles. No Nsight installation
+is needed. The prepared-call signature was checked against CCCL Python 1.1.1;
+the script fails explicitly if the factory is absent rather than substituting
+a different measurement.
+
+On Della, using the previously prepared CUDA_BENCH checkouts, wheels and Conda
+environment, clone this repository there as `awkward-matrix`, then submit:
+
+```bash
+cd /home/iosborne/Projects/CUDA_BENCH
+git clone --branch ianna/cuda-migration-validation \
+  https://github.com/ianna/awkward-matrix.git awkward-matrix
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-dispatch.sbatch
+```
+
+If that clone already exists, use `git -C awkward-matrix pull --ff-only` instead.
+The Della script installs the matching existing candidate wheel and checkout,
+uses the site's default partition selection, and writes to
+`results/JOBNUMBER/dispatch/`. Do not run it concurrently with another job that
+reinstalls packages in `awkward-cuda-bench`.
