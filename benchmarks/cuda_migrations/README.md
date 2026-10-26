@@ -197,3 +197,50 @@ The Della script installs the matching existing candidate wheel and checkout,
 uses the site's default partition selection, and writes to
 `results/JOBNUMBER/dispatch/`. Do not run it concurrently with another job that
 reinstalls packages in `awkward-cuda-bench`.
+
+## Completed public operations
+
+`public_operations.py` adds a separate warmed comparison of `ak.to_regular`
+(including irregular inputs that must raise) and `ak.drop_none(axis=1)` on the
+same three shapes as the kernel suite. CPU expected values and input transfer
+are outside timing. Every measured call includes public result construction,
+stream completion and Awkward deferred-error draining, even when the call itself
+raises. Both paths must match CPU values or the expected error before a report
+is accepted. Errors are classified after timing, with call-versus-drain counts
+reported separately. JIT warmup is excluded; inputs remain alive and each call
+creates a fresh result.
+
+The existing kernel `total_us` already includes completion and error draining.
+This comparison adds the surrounding public operation and its metadata/scalar
+reads. It does not assume the synchronous candidate will catch up, replace the
+kernel timing/trace/allocation reports, or relax their review gate. The separate
+public report flags regressions in completed latency; host submission latency
+remains visible. CUDA-event times include host submission gaps.
+
+On Della, **after other jobs using the shared Conda environment finish**:
+
+```bash
+cd /home/iosborne/Projects/CUDA_BENCH
+git -C awkward-matrix pull --ff-only
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-public.sbatch
+```
+
+The job installs each existing wheel and checkout sequentially, runs separate
+Python workers, and writes environment metadata, samples and comparison reports
+to `results/JOBNUMBER/public/`. No Nsight installation is required. The current
+candidate checkout revision is recorded; update that checkout before submitting
+if necessary.
+
+Elsewhere, install each checkout and its matching native wheel before its worker:
+
+```bash
+python benchmarks/cuda_migrations/public_operations.py run \
+  --checkout /path/to/baseline --output results/public/baseline.json
+# Install candidate and its matching native wheel, then:
+python benchmarks/cuda_migrations/public_operations.py run \
+  --checkout /path/to/candidate --output results/public/candidate.json
+python benchmarks/cuda_migrations/public_operations.py compare \
+  --baseline results/public/baseline.json --candidate results/public/candidate.json \
+  --output results/public/comparison
+```
