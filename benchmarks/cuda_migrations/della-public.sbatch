@@ -33,6 +33,7 @@ nvidia-smi
 for variant in baseline "$SUITE"; do
     python -m pip install --no-index --no-deps --force-reinstall \
       "$BENCH_ROOT/wheels/$variant/"*.whl
+    python "$BENCH_ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$BENCH_ROOT/$variant"
     python -m pip install --no-deps --no-build-isolation -e "$BENCH_ROOT/$variant"
     python "$HARNESS" run --checkout "$BENCH_ROOT/$variant" \
       --suite "$SUITE" --output "$RESULTS/$variant.json" --warmup 20 --iterations 50 --repeats 5

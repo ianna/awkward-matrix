@@ -34,6 +34,7 @@ for mode in cpu raw compute; do
     variant="$CANDIDATE"
     if [ "$mode" = raw ]; then variant=baseline; fi
     python -m pip install --no-index --no-deps --force-reinstall "$ROOT/wheels/$variant/"*.whl
+    python "$ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$ROOT/$variant"
     python -m pip install --no-deps --no-build-isolation -e "$ROOT/$variant"
     python "$HARNESS" run --checkout "$ROOT/$variant" --manifest "$RESULTS/manifest.json" \
       --mode "$mode" --output "$RESULTS/$mode.json"

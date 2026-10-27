@@ -423,3 +423,23 @@ and synchronization events overlap and must not be summed. CUDA array `.get()`
 and CuPy-internal synchronization are not intercepted by this trace; use the
 profile caller tree (or Nsight) to investigate such waits. No GPU device-time or
 synchronization-count claims should be made from cProfile alone.
+
+### Signature refresh after checkout updates
+
+The Della launchers run `benchmarks/prepare_cuda.py` for each checkout before
+using its editable installation. This invokes **that checkout's own**
+`dev/generate-kernel-signatures.py`. Generated CUDA signatures are ignored by Git;
+changing commits and reinstalling the pure Python package can otherwise leave
+old RawModule name expressions pointing at deleted `.cu` functions. One stale
+entry can prevent unrelated RawKernels from compiling in the shared module.
+
+For manual jobs or an older `run-della.sbatch`, run this inside the batch job,
+before importing Awkward for each variant:
+
+```bash
+python "$BENCH_ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$BENCH_ROOT/$variant"
+```
+
+This refreshes generated artifacts; it does not build C++ or change package
+versions. Use a fresh Python process after regeneration if CUDA initialization
+has already been attempted.

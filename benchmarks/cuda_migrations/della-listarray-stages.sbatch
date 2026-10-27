@@ -31,6 +31,7 @@ hostname
 nvidia-smi
 python -m pip install --no-index --no-deps --force-reinstall \
   "$BENCH_ROOT/wheels/listarray/"*.whl
+python "$BENCH_ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$CANDIDATE"
 python -m pip install --no-deps --no-build-isolation -e "$CANDIDATE"
 python "$HARNESS" --checkout "$CANDIDATE" --output "$RESULTS" \
   --warmup 20 --iterations 100 --repeats 5 --profile-iterations 100

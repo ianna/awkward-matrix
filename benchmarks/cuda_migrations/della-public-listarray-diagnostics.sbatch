@@ -26,6 +26,7 @@ hostname
 nvidia-smi
 for variant in baseline listarray; do
     python -m pip install --no-index --no-deps --force-reinstall "$ROOT/wheels/$variant/"*.whl
+    python "$ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$ROOT/$variant"
     python -m pip install --no-deps --no-build-isolation -e "$ROOT/$variant"
     python "$HARNESS" run --checkout "$ROOT/$variant" --output "$RESULTS/$variant" "$@"
 done
