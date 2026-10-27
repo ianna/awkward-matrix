@@ -54,11 +54,74 @@ def cases(ak, rows, width):
         )
 
 
+LISTARRAY_CASES = (
+    "slice_advanced",
+    "slice_jagged",
+    "slice_spread",
+    "slice_advanced_bounds",
+    "slice_jagged_bounds",
+)
+
+
+def listarray_cases(ak, rows, width, backend="cpu"):
+    # Use ListArray explicitly: constructing from Python lists would select
+    # ListOffsetArray and could bypass the kernels under investigation.
+    offsets = np.arange(rows + 1, dtype=np.int64) * width
+    values = np.arange(rows * width * 3, dtype=np.int64)
+    inner = ak.contents.RegularArray(ak.contents.NumpyArray(values), 3)
+    source = ak.Array(
+        ak.contents.ListArray(
+            ak.index.Index64(offsets[:-1]),
+            ak.index.Index64(offsets[1:]),
+            inner,
+        )
+    )
+    row_index = np.arange(rows, dtype=np.int64)
+    column_index = np.zeros(rows, dtype=np.int64)
+    inner_index = np.ones(rows, dtype=np.int64)
+    jagged = ak.Array([[0, -1] for _ in range(width)])
+    bad_jagged = ak.Array([[3] if i == width // 2 else [0] for i in range(width)])
+    bad_column = column_index.copy()
+    if rows:
+        bad_column[rows // 2] = width
+    source = ak.to_backend(source, backend)
+    row_index, column_index, inner_index, bad_column, jagged, bad_jagged = (
+        ak.to_backend(ak.Array(index), backend)
+        for index in (
+            row_index,
+            column_index,
+            inner_index,
+            bad_column,
+            jagged,
+            bad_jagged,
+        )
+    )
+    yield "slice_advanced", source, lambda x: x[row_index, column_index, inner_index]
+    yield "slice_jagged", source, lambda x: x[:, jagged]
+    yield "slice_spread", source, lambda x: x[row_index, :]
+    yield (
+        "slice_advanced_bounds",
+        source,
+        lambda x: x[row_index, bad_column, inner_index],
+    )
+    yield "slice_jagged_bounds", source, lambda x: x[:, bad_jagged]
+
+
+def case_names(suite, rows, width):
+    if suite == "listarray":
+        return LISTARRAY_CASES
+    return ("to_regular", "drop_none") + (
+        ("to_regular_irregular",) if rows >= 2 and width >= 1 else ()
+    )
+
+
 def expectation(ak, call):
     try:
         return {"values": ak.to_list(call()), "error": None}
-    except ValueError as error:
+    except (ValueError, IndexError) as error:
         # Keep a stable semantic fragment, excluding backend-specific context.
+        if isinstance(error, IndexError) and "index out of range" in str(error):
+            return {"error": "index out of range", "error_type": "IndexError"}
         if "not regular" not in str(error):
             raise
         return {"error": "not regular"}
@@ -69,7 +132,11 @@ def validate_errors(errors, expected):
         if errors:
             raise AssertionError(f"Unexpected CUDA error(s): {errors!r}")
     elif not errors or any(
-        not isinstance(error, ValueError) or expected["error"] not in str(error)
+        not isinstance(
+            error,
+            IndexError if expected.get("error_type") == "IndexError" else ValueError,
+        )
+        or expected["error"] not in str(error)
         for _, error in errors
     ):
         raise AssertionError(f"Expected {expected['error']!r}, got {errors!r}")
@@ -123,6 +190,7 @@ def run(args):
             "iterations": args.iterations,
             "repeats": args.repeats,
             "shapes": SHAPES,
+            "suite": getattr(args, "suite", "listoffsetarray"),
             "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         },
         "measurements": [],
@@ -130,9 +198,25 @@ def run(args):
     stream = cp.cuda.Stream(non_blocking=True)
     with stream:
         for rows, width in SHAPES:
-            for name, host, operation in cases(ak, rows, width):
+            factory = (
+                listarray_cases if report["settings"]["suite"] == "listarray" else cases
+            )
+            device_cases = (
+                {
+                    name: (source, operation)
+                    for name, source, operation in listarray_cases(
+                        ak, rows, width, "cuda"
+                    )
+                }
+                if report["settings"]["suite"] == "listarray"
+                else {}
+            )
+            for name, host, operation in factory(ak, rows, width):
                 expected = expectation(ak, lambda: operation(host))
-                source = ak.to_backend(host, "cuda")
+                if device_cases:
+                    source, operation = device_cases[name]
+                else:
+                    source = ak.to_backend(host, "cuda")
 
                 def finish():
                     finish_stream(cuda, stream)
@@ -176,6 +260,7 @@ def run(args):
                         "case": f"{name}:{rows}:{width}",
                         "status": "passed",
                         "expected_error": expected["error"],
+                        "expected_error_type": expected.get("error_type"),
                         "error_stages": stages,
                         "samples": samples,
                         "median": {
@@ -198,8 +283,9 @@ def comparison(baseline, candidate, max_regression=1.1):
     expected_cases = {
         f"{name}:{rows}:{width}"
         for rows, width in baseline["settings"]["shapes"]
-        for name in ("to_regular", "drop_none", "to_regular_irregular")
-        if name != "to_regular_irregular" or (rows >= 2 and width >= 1)
+        for name in case_names(
+            baseline["settings"].get("suite", "listoffsetarray"), rows, width
+        )
     }
     if old.keys() != expected_cases or new.keys() != expected_cases:
         raise ValueError("Missing or mismatched public workload inventory")
@@ -208,7 +294,10 @@ def comparison(baseline, candidate, max_regression=1.1):
         after = new[name]
         if before["status"] != "passed" or after["status"] != "passed":
             raise ValueError(f"Unvalidated public workload: {name}")
-        if before["expected_error"] != after["expected_error"]:
+        if (before["expected_error"], before.get("expected_error_type")) != (
+            after["expected_error"],
+            after.get("expected_error_type"),
+        ):
             raise ValueError(f"Mismatched error expectation: {name}")
         ratio = after["median"]["completion_us"] / before["median"]["completion_us"]
         entries.append(
@@ -265,6 +354,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     worker = sub.add_parser("run")
+    worker.add_argument(
+        "--suite", choices=("listoffsetarray", "listarray"), default="listoffsetarray"
+    )
     worker.add_argument("--checkout", required=True)
     worker.add_argument("--output", required=True)
     worker.add_argument("--warmup", type=int, default=20)

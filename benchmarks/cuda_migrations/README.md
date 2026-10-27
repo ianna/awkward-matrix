@@ -343,3 +343,33 @@ fenced stage diagnostics and cProfile reports under `stages-chunk-N/`. Stage
 sums are not whole-call predictions. The stage CLI supports `--chunk-size` and
 requires at least two chunks. GPU measurements are required before selecting a
 new validation granularity or enabling the tiled spread writer by default.
+
+### Completed public ListArray slicing
+
+With other benchmark jobs finished (these scripts share a Conda environment),
+update the `listarray` checkout to the candidate and run from `CUDA_BENCH`:
+
+```bash
+git -C listarray fetch origin ianna/cuda-compute-listarray
+git -C listarray switch --detach FETCH_HEAD
+git -C awkward-matrix pull --ff-only
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-public.sbatch listarray
+```
+
+Results are in `results/JOB_ID/public-listarray/comparison.md` and `.json`.
+The existing ListOffsetArray suite remains the default; its output directory is
+now `public-listoffsetarray`.
+
+The ListArray suite uses explicit `ListArray` inputs and covers paired advanced
+indices, a broadcast jagged slice, and advanced row selection followed by a
+range slice. CPU tests verify dispatch to all three measured migrated kernels.
+Advanced and jagged out-of-bounds cases separately report errors raised during
+the call or during completion. Jagged bounds errors also exercise downstream
+slicing validation; they are not errors in `jagged_expand` itself.
+
+Sources, index arrays and CPU reference results are prepared before timing;
+GPU index transfers, JIT warmup and parity comparisons are excluded. Timings
+include the public slice and result construction, stream completion and deferred
+error draining. Every warmup result is compared with the CPU result, or checked
+for the expected error type and semantic message. Completion ratios supplement
+the kernel report and do not override its review gate. No profiler is needed.

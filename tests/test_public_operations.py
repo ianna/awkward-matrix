@@ -161,7 +161,10 @@ def test_public_fixtures_match_independent_cpu_expectations(rows, width):
     np.testing.assert_array_equal(index[::3], -1)
 
 
-def test_worker_warmup_is_excluded_and_complete_reports_compare(tmp_path, monkeypatch):
+@pytest.mark.parametrize("suite", ["listoffsetarray", "listarray"])
+def test_worker_warmup_is_excluded_and_complete_reports_compare(
+    tmp_path, monkeypatch, suite
+):
     import json
 
     ak = pytest.importorskip("awkward")
@@ -197,7 +200,9 @@ def test_worker_warmup_is_excluded_and_complete_reports_compare(tmp_path, monkey
     monkeypatch.setattr(
         public, "finish_stream", lambda cuda, stream: calls.append("finish")
     )
-    monkeypatch.setattr(public, "SHAPES", [(2, 3), (0, 8), (3, 0)])
+    monkeypatch.setattr(
+        public, "SHAPES", [(2, 3)] if suite == "listarray" else [(2, 3), (0, 8), (3, 0)]
+    )
     env = {field: "same" for field in public.ENVIRONMENT_FIELDS}
     env["git_sha"] = "revision"
     monkeypatch.setattr(public, "environment", lambda cp, checkout: env)
@@ -206,14 +211,16 @@ def test_worker_warmup_is_excluded_and_complete_reports_compare(tmp_path, monkey
         SimpleNamespace(
             checkout=Path(ak.__file__).resolve().parents[2],
             output=output,
+            suite=suite,
             warmup=2,
             iterations=2,
             repeats=2,
         )
     )
     report = json.loads(output.read_text())
-    assert len(report["measurements"]) == 7
-    assert len(calls) == 7 * (1 + 2 * 2 + 2 * 2)
+    count = 5 if suite == "listarray" else 7
+    assert len(report["measurements"]) == count
+    assert len(calls) == count * (1 + 2 * 2 + 2 * 2)
     for case in report["measurements"]:
         assert case["status"] == "passed"
         assert len(case["samples"]) == 2
@@ -254,4 +261,43 @@ def test_public_fixtures_reach_the_migrated_kernels(monkeypatch):
     assert {
         "awkward_ListOffsetArray_drop_none_indexes",
         "awkward_ListOffsetArray_toRegularArray",
+    } <= seen
+
+
+@pytest.mark.parametrize("rows,width", [(3, 4), (32, 8)])
+def test_listarray_public_slices_and_kernel_coverage(monkeypatch, rows, width):
+    ak = pytest.importorskip("awkward")
+    from awkward._backends.numpy import NumpyBackend
+
+    seen = set()
+    original = NumpyBackend.__getitem__
+
+    def lookup(self, key):
+        seen.add(key[0])
+        return original(self, key)
+
+    monkeypatch.setattr(NumpyBackend, "__getitem__", lookup)
+    for name, source, operation in public.listarray_cases(ak, rows, width):
+        assert source.layout.is_list and not source.layout.is_regular
+        expected = public.expectation(ak, lambda: operation(source))
+        if "bounds" in name:
+            assert expected == {
+                "error": "index out of range",
+                "error_type": "IndexError",
+            }
+            public.validate_errors(
+                [("finish", IndexError("index out of range"))], expected
+            )
+        else:
+            values = np.arange(rows * width * 3).reshape(rows, width, 3)
+            reference = {
+                "slice_advanced": values[:, 0, 1].tolist(),
+                "slice_jagged": values[:, :, [0, 2]].tolist(),
+                "slice_spread": values.tolist(),
+            }[name]
+            assert expected == {"values": reference, "error": None}
+    assert {
+        "awkward_ListArray_getitem_next_array_advanced",
+        "awkward_ListArray_getitem_jagged_expand",
+        "awkward_ListArray_getitem_next_range_spreadadvanced",
     } <= seen

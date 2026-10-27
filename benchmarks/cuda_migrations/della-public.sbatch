@@ -24,17 +24,19 @@ export OPENBLAS_NUM_THREADS=1
 
 BENCH_ROOT="$SLURM_SUBMIT_DIR"
 HARNESS="$BENCH_ROOT/awkward-matrix/benchmarks/cuda_migrations/public_operations.py"
-RESULTS="$BENCH_ROOT/results/$SLURM_JOB_ID/public"
+SUITE="${1:-listoffsetarray}"
+case "$SUITE" in listoffsetarray|listarray) ;; *) echo "Unknown suite: $SUITE" >&2; exit 2 ;; esac
+RESULTS="$BENCH_ROOT/results/$SLURM_JOB_ID/public-$SUITE"
 mkdir -p "$RESULTS"
 hostname
 nvidia-smi
-for variant in baseline listoffsetarray; do
+for variant in baseline "$SUITE"; do
     python -m pip install --no-index --no-deps --force-reinstall \
       "$BENCH_ROOT/wheels/$variant/"*.whl
     python -m pip install --no-deps --no-build-isolation -e "$BENCH_ROOT/$variant"
     python "$HARNESS" run --checkout "$BENCH_ROOT/$variant" \
-      --output "$RESULTS/$variant.json" --warmup 20 --iterations 50 --repeats 5
+      --suite "$SUITE" --output "$RESULTS/$variant.json" --warmup 20 --iterations 50 --repeats 5
 done
 python "$HARNESS" compare --baseline "$RESULTS/baseline.json" \
-  --candidate "$RESULTS/listoffsetarray.json" --output "$RESULTS/comparison"
+  --candidate "$RESULTS/$SUITE.json" --output "$RESULTS/comparison"
 cat "$RESULTS/comparison.md"
