@@ -131,15 +131,25 @@ def validate_errors(errors, expected):
     if expected["error"] is None:
         if errors:
             raise AssertionError(f"Unexpected CUDA error(s): {errors!r}")
-    elif not errors or any(
-        not isinstance(
-            error,
-            IndexError if expected.get("error_type") == "IndexError" else ValueError,
-        )
-        or expected["error"] not in str(error)
-        for _, error in errors
-    ):
-        raise AssertionError(f"Expected {expected['error']!r}, got {errors!r}")
+    else:
+
+        def matches(stage, error):
+            message = str(error)
+            if expected["error"] not in message:
+                return False
+            if expected.get("error_type") == "IndexError":
+                # Legacy CUDA error draining wraps kernel bounds failures in
+                # ValueError. Preserve the phase and require its CUDA marker;
+                # an unrelated ValueError must not pass as an indexing error.
+                return isinstance(error, IndexError) or (
+                    stage == "finish"
+                    and isinstance(error, ValueError)
+                    and "index out of range in compiled CUDA code (awkward_" in message
+                )
+            return isinstance(error, ValueError)
+
+        if not errors or any(not matches(stage, error) for stage, error in errors):
+            raise AssertionError(f"Expected {expected['error']!r}, got {errors!r}")
 
 
 def measure_completed(cp, stream, call, finish):

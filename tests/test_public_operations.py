@@ -301,3 +301,21 @@ def test_listarray_public_slices_and_kernel_coverage(monkeypatch, rows, width):
         "awkward_ListArray_getitem_jagged_expand",
         "awkward_ListArray_getitem_next_range_spreadadvanced",
     } <= seen
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    ["ListArray_getitem_next_array_advanced", "RegularArray_getitem_jagged_apply"],
+)
+def test_legacy_cuda_bounds_wrapper(kernel):
+    expected = {"error": "index out of range", "error_type": "IndexError"}
+    error = ValueError(f"index out of range in compiled CUDA code (awkward_{kernel})")
+    public.validate_errors([("finish", error)], expected)
+    for stage, wrong in (
+        ("call", error),
+        ("finish", ValueError("index out of range")),
+        ("finish", RuntimeError(str(error))),
+        ("finish", ValueError("CUDA launch failed")),
+    ):
+        with pytest.raises(AssertionError):
+            public.validate_errors([(stage, wrong)], expected)
