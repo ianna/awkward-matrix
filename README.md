@@ -13,7 +13,7 @@ results. Benchmark tooling alone does not establish a speedup or backend parity.
 
 ## CUDA migration validation
 
-The initial harness compares twelve active CUDA migration candidates between
+The initial harness compares eleven CUDA migration candidates between
 an Awkward baseline and candidate checkout. It includes full-buffer parity,
 warmed timing, Nsight tracing, and temporary-allocation accounting. The capture
 includes GPU completion while excluding the harness completion fence from
@@ -32,6 +32,15 @@ for environment setup, baseline/candidate installation, and report comparison.
 The manual GPU workflow requires a self-hosted GPU runner registered to this
 repository with `nsys` available. It is not automatically executable merely
 because the repository exists.
+
+## Full CUDA kernel matrix
+
+The separate [`benchmarks/cuda_matrix`](benchmarks/cuda_matrix/README.md) harness
+compares canonical CPU kernels, legacy RawKernel implementations, and candidate
+cuda.compute implementations. It discovers the candidate's dispatch inventory,
+imports generated fixtures, measures completed public operations, and supports
+kernel/family/operation/layout/dtype selectors. Missing implementations and
+coverage gaps remain explicit.
 
 ## Tests
 
