@@ -373,3 +373,9 @@ include the public slice and result construction, stream completion and deferred
 error draining. Every warmup result is compared with the CPU result, or checked
 for the expected error type and semantic message. Completion ratios supplement
 the kernel report and do not override its review gate. No profiler is needed.
+
+Public-operation correctness failures are retained as `parity_failed`, with the
+case ID and observed errors printed in the job log and JSON. They have no timing
+ratio and make both parity/completion gates false. Other valid cases continue,
+so a legacy bounds-check failure does not prevent collecting valid-case timings.
+A missing expected exception is never accepted as normal baseline behavior.

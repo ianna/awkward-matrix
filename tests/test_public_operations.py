@@ -319,3 +319,77 @@ def test_legacy_cuda_bounds_wrapper(kernel):
     ):
         with pytest.raises(AssertionError):
             public.validate_errors([(stage, wrong)], expected)
+
+
+def test_missing_cuda_bounds_error_is_recorded_not_accepted(tmp_path, monkeypatch):
+    import json
+
+    ak = pytest.importorskip("awkward")
+
+    class Stream:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    class Event:
+        def record(self, stream):
+            pass
+
+        def synchronize(self):
+            pass
+
+    monkeypatch.setitem(
+        sys.modules,
+        "cupy",
+        SimpleNamespace(
+            cuda=SimpleNamespace(
+                Stream=Stream, Event=Event, get_elapsed_time=lambda a, b: 0.001
+            )
+        ),
+    )
+    monkeypatch.setattr(ak, "to_backend", lambda source, backend: source)
+    monkeypatch.setattr(public, "finish_stream", lambda *args: None)
+    monkeypatch.setattr(public, "SHAPES", [(2, 3)])
+    env = {field: "same" for field in public.ENVIRONMENT_FIELDS}
+    env["git_sha"] = "revision"
+    monkeypatch.setattr(public, "environment", lambda *args: env)
+    original = public.measure_completed
+
+    def missing_bounds(*args):
+        metrics, result, errors = original(*args)
+        return metrics, result, [] if errors else errors
+
+    monkeypatch.setattr(public, "measure_completed", missing_bounds)
+    output = tmp_path / "report.json"
+    public.run(
+        SimpleNamespace(
+            checkout=Path(ak.__file__).resolve().parents[2],
+            output=output,
+            suite="listarray",
+            warmup=1,
+            iterations=1,
+            repeats=1,
+        )
+    )
+    report = json.loads(output.read_text())
+    assert len(report["measurements"]) == 5
+    failed = [r for r in report["measurements"] if r["status"] == "parity_failed"]
+    assert len(failed) == 2
+    assert all(r["observed_errors"] == [] and not r["median"] for r in failed)
+    comparison = public.comparison(report, report)
+    assert not comparison["public_parity_passed"]
+    assert not comparison["no_completion_regressions"]
+    public.compare(
+        SimpleNamespace(
+            baseline=output,
+            candidate=output,
+            output=tmp_path / "comparison",
+            max_regression=1.1,
+        )
+    )
+    assert "PARITY FAILED" in (tmp_path / "comparison.md").read_text()

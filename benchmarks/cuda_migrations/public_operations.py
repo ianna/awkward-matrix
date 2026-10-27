@@ -235,17 +235,54 @@ def run(args):
                     return operation(source)
 
                 finish()
+                case_id = f"{name}:{rows}:{width}"
+                print(f"Checking {case_id}", flush=True)
+                failure = None
+                observed = []
                 for _ in range(args.warmup):
                     _, result, errors = measure_completed(cp, stream, call, finish)
-                    validate_errors(errors, expected)
-                    if expected["error"] is None:
-                        actual = ak.to_list(ak.to_backend(result, "cpu"))
-                        if actual != expected["values"]:
-                            raise AssertionError(
-                                f"Public parity failed: {name}:{rows}:{width}"
-                            )
+                    try:
+                        validate_errors(errors, expected)
+                        if expected["error"] is None:
+                            actual = ak.to_list(ak.to_backend(result, "cpu"))
+                            if actual != expected["values"]:
+                                raise AssertionError(
+                                    "Output differs from CPU reference"
+                                )
+                    except AssertionError as error:
+                        failure = str(error)
+                        observed = [
+                            {
+                                "stage": stage,
+                                "type": type(error).__name__,
+                                "message": str(error),
+                            }
+                            for stage, error in errors
+                        ]
                     del result
                     finish()
+                    if failure is not None:
+                        break
+                if failure is not None:
+                    report["measurements"].append(
+                        {
+                            "case": case_id,
+                            "status": "parity_failed",
+                            "failure": failure,
+                            "expected_error": expected["error"],
+                            "expected_error_type": expected.get("error_type"),
+                            "observed_errors": observed,
+                            "error_stages": {
+                                stage: sum(e["stage"] == stage for e in observed)
+                                for stage in ("call", "finish")
+                            },
+                            "samples": [],
+                            "median": None,
+                        }
+                    )
+                    output.write_text(json.dumps(report, indent=2) + "\n")
+                    print(f"PARITY FAILED {case_id}: {failure}", flush=True)
+                    continue
                 samples = []
                 stages = {"call": 0, "finish": 0}
                 for _ in range(args.repeats):
@@ -302,31 +339,38 @@ def comparison(baseline, candidate, max_regression=1.1):
     entries = []
     for name, before in old.items():
         after = new[name]
-        if before["status"] != "passed" or after["status"] != "passed":
+        if before["status"] not in ("passed", "parity_failed") or after[
+            "status"
+        ] not in ("passed", "parity_failed"):
             raise ValueError(f"Unvalidated public workload: {name}")
         if (before["expected_error"], before.get("expected_error_type")) != (
             after["expected_error"],
             after.get("expected_error_type"),
         ):
             raise ValueError(f"Mismatched error expectation: {name}")
-        ratio = after["median"]["completion_us"] / before["median"]["completion_us"]
+        validated = before["status"] == after["status"] == "passed"
+        ratio = (
+            after["median"]["completion_us"] / before["median"]["completion_us"]
+            if validated
+            else None
+        )
         entries.append(
             {
                 "case": name,
                 "baseline": before,
                 "candidate": after,
                 "completion_ratio": ratio,
-                "completion_regression": ratio > max_regression,
+                "completion_regression": ratio > max_regression if validated else None,
+                "parity_passed": validated,
             }
         )
     return {
         "baseline_sha": baseline["environment"]["git_sha"],
         "candidate_sha": candidate["environment"]["git_sha"],
         "max_regression": max_regression,
-        "public_parity_passed": True,
-        "no_completion_regressions": not any(
-            x["completion_regression"] for x in entries
-        ),
+        "public_parity_passed": all(x["parity_passed"] for x in entries),
+        "no_completion_regressions": all(x["parity_passed"] for x in entries)
+        and not any(x["completion_regression"] for x in entries),
         "cases": entries,
     }
 
@@ -343,6 +387,8 @@ def compare(args):
     lines = [
         "# Completed public CUDA operations",
         "",
+        f"Public parity passed: **{report['public_parity_passed']}**.",
+        "",
         f"Baseline: `{report['baseline_sha']}`; candidate: `{report['candidate_sha']}`.",
         "",
         "Inputs and CPU reference results are prepared outside timing. JIT warmup is excluded. Each sample includes the public call, result construction, stream completion and deferred-error draining. Error classification and output comparisons are outside timing. Stream time includes submission gaps; it is not pure kernel time.",
@@ -352,11 +398,21 @@ def compare(args):
         "| Public workload | Host µs, baseline → candidate | Completed µs, baseline → candidate | Completion ratio | Error stages, baseline → candidate |",
         "| --- | --- | --- | --- | --- |",
     ]
+    failures = []
     for entry in report["cases"]:
         before, after = entry["baseline"], entry["candidate"]
+        if not entry["parity_passed"]:
+            lines.append(
+                f"| {entry['case']} | — | — | PARITY FAILED | {before['status']} → {after['status']} |"
+            )
+            for label, row in (("baseline", before), ("candidate", after)):
+                if row["status"] == "parity_failed":
+                    failures.append(f"{entry['case']} ({label}): {row['failure']}")
+            continue
         lines.append(
             f"| {entry['case']} | {before['median']['host_us']:.3f} → {after['median']['host_us']:.3f} | {before['median']['completion_us']:.3f} → {after['median']['completion_us']:.3f} | {entry['completion_ratio']:.3f} | {before['error_stages']} → {after['error_stages']} |"
         )
+    lines.extend(["", *failures])
     prefix.with_suffix(".md").write_text("\n".join(lines) + "\n")
 
 
