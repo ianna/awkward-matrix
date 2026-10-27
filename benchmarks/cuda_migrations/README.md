@@ -379,3 +379,47 @@ case ID and observed errors printed in the job log and JSON. They have no timing
 ratio and make both parity/completion gates false. Other valid cases continue,
 so a legacy bounds-check failure does not prevent collecting valid-case timings.
 A missing expected exception is never accepted as normal baseline behavior.
+
+### Public ListArray dispatch and host profiling
+
+Run after the completed public comparison to investigate jagged/spread regressions.
+This is a **separate diagnostic job**, with no profiler active in the timing
+benchmark. Wait for all other jobs that use the shared Conda environment.
+
+```bash
+git -C awkward-matrix pull --ff-only
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-public-listarray-diagnostics.sbatch
+```
+
+Defaults cover `slice_jagged` and `slice_spread` at all three standard shapes.
+Select one case with optional trailing arguments:
+
+```bash
+sbatch --export=NONE \
+  awkward-matrix/benchmarks/cuda_migrations/della-public-listarray-diagnostics.sbatch \
+  --operation slice_jagged --shape 4096:8
+```
+
+Results: `results/JOB_ID/public-listarray-diagnostics/comparison.md` and `.json`.
+Each revision also has `diagnostics.json`, ordered events with kernel signatures,
+argument metadata, Python stacks, parent invocation IDs, implementation classes
+and per-operation counts. Explicit Awkward `synchronize_cuda` calls are recorded
+in both the call and finish phases. Array contents are never fetched by tracing;
+CPU reference and GPU output checks occur outside trace/profile boundaries.
+
+For each case, `*-call_only.txt/.pstats` profiles the public call and drains errors
+outside profiling; `*-completed.txt/.pstats` includes stream completion/error
+handling. Each pass uses warmed inputs prepared before tracing. Raw pstats and
+full JSON function records preserve both cumulative and exclusive/self host time.
+The comparison ranks increases in **exclusive self time** to avoid counting the
+same work at every stack level. Checkout prefixes and moved source line numbers
+are excluded from function matching; same-named functions in the same file are
+aggregated. Consult the full per-revision profile for line-specific detail.
+
+Instrumented wrapper durations and cProfile times are **diagnostics, not
+benchmark latencies**. Tracing/profiling perturb host execution; nested wrapper
+and synchronization events overlap and must not be summed. CUDA array `.get()`
+and CuPy-internal synchronization are not intercepted by this trace; use the
+profile caller tree (or Nsight) to investigate such waits. No GPU device-time or
+synchronization-count claims should be made from cProfile alone.
