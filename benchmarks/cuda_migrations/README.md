@@ -622,3 +622,17 @@ For the remaining short-list concatenation overhead, submit
 capture and separate call-only/completed host profiles. Inspect
 `results/JOB/public-unionarray-concatenate-diagnostics/comparison.md`; full events
 and profiles are retained alongside it. No production algorithm is changed.
+
+### Complete UnionArray review run
+
+`della-unionarray-final.sbatch` runs all three isolated kernel families (nine
+shape cases), canonical parity, Nsight traces and the six completed public
+operations, sequentially for baseline and the current unionarray checkout.
+Pointer-table pointees and device addresses are constructed outside measurement;
+their ownership is retained, and resets restore pointees without copying host
+addresses onto the device. Parity compares pointee contents rather than addresses.
+Reports are at `results/JOB/unionarray-final/{kernels,public}/comparison.md`.
+Both reports are written before the kernel gate controls job exit status.
+Requires the existing environment, wheels and Nsight installation. Avoid concurrent
+jobs installing into the shared environment. Run artifacts, not host simulation,
+are needed to establish CUDA parity and the final performance gate.
