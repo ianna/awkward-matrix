@@ -546,3 +546,26 @@ allocation stage follows the two-buffer status/workspace path. The historical
 prototype-comparison script rejects an already-fused production checkout;
 use `712d13f0b` in a separate checkout for that historical comparison. Use the
 completed `--suite indexed` public benchmark to evaluate the integrated revision.
+
+### Paired public IndexedArray diagnostics
+
+To investigate the remaining indexed→option overhead without changing reduction
+code, run the two valid field projections on the same large shape:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-public-indexed-diagnostics.sbatch
+```
+
+The job sequentially installs `baseline` and `indexed` in the shared environment;
+do not run it alongside another job that installs into that environment. Results
+are in `results/JOB/public-indexed-diagnostics/comparison.md` (and JSON). Both
+projections are checked against CPU results outside profiling. JIT warmup is
+excluded. Untimed traces record actual kernel dispatch and available
+`ErrorContext.frozen_primary`/`cuda_primary` calls, including parent relationships.
+Separate cProfile passes show exclusive host time for call-only and completed
+boundaries. Paired tables compare indexed→option minus indexed→indexed within
+each revision, and the change in that gap. Context, dispatch and get/tolist status
+functions are included even outside the largest increases. Full profiles and
+trace events are retained; `.get` profiling does not identify transfer bytes or
+separate device waiting from Python overhead. Diagnostic durations are perturbed
+and must not be used as benchmark latencies. Production kernels are unchanged.

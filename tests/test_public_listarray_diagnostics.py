@@ -217,7 +217,8 @@ def test_profile_drains_even_if_public_call_raises(include_finish):
     assert drained == [True]
 
 
-def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch):
+@pytest.mark.parametrize("suite", ["listarray", "indexed"])
+def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
     ak = pytest.importorskip("awkward")
 
     class Stream:
@@ -233,7 +234,7 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch):
     monkeypatch.setitem(
         sys.modules, "cupy", SimpleNamespace(cuda=SimpleNamespace(Stream=Stream))
     )
-    monkeypatch.setattr(ak, "to_backend", lambda source, backend: source)
+    monkeypatch.setattr(ak, "to_backend", lambda source, backend, **kwargs: source)
     monkeypatch.setattr(diag, "finish_stream", lambda *args: None)
     env = {
         field: "same"
@@ -253,7 +254,10 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch):
             checkout=Path(ak.__file__).resolve().parents[2],
             output=tmp_path,
             shapes=[(2, 3)],
-            operation=list(diag.OPERATIONS),
+            suite=suite,
+            operation=list(
+                diag.INDEXED_OPERATIONS if suite == "indexed" else diag.OPERATIONS
+            ),
             warmup=1,
             trace_iterations=2,
             profile_iterations=2,
@@ -268,3 +272,52 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch):
         SimpleNamespace(baseline=path, candidate=path, output=tmp_path / "comparison")
     )
     assert (tmp_path / "comparison.md").exists()
+
+
+def test_context_capture_is_traced_and_restored():
+    class Context:
+        @classmethod
+        def frozen_primary(cls):
+            return "context"
+
+    class Backend:
+        def __getitem__(self, key):
+            raise AssertionError("No kernel requested")
+
+    original = Context.__dict__["frozen_primary"]
+    recorder = diag.Recorder()
+    with recorder.install(Backend, error_context=Context):
+        assert Context.frozen_primary() == "context"
+    assert Context.__dict__["frozen_primary"] is original
+    assert recorder.events[0]["kind"] == "error_context"
+    assert recorder.events[0]["name"] == "frozen_primary"
+
+
+def test_indexed_paired_profile_subtracts_common_work():
+    def report(indexed, option):
+        return {
+            "settings": {"profile_iterations": 10, "shapes": [[4096, 8]]},
+            "cases": [
+                {
+                    "case": f"{name}:4096:8",
+                    "profiles": {
+                        boundary: [
+                            {
+                                "file": "/tmp/awkward/_errors.py",
+                                "function": "freeze",
+                                "self_seconds": seconds,
+                            }
+                        ]
+                        for boundary in ("call_only", "completed")
+                    },
+                }
+                for name, seconds in zip(diag.INDEXED_OPERATIONS, (indexed, option))
+            ],
+        }
+
+    lines = []
+    paired = diag.paired_profiles(report(0.001, 0.002), report(0.003, 0.005), lines)
+    row = paired[0]["functions"][0]
+    assert row["candidate_option_minus_indexed_us"] == pytest.approx(200)
+    assert row["excess_delta_us"] == pytest.approx(100)
+    assert any("_errors.py:freeze" in line for line in lines)
