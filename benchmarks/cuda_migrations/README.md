@@ -602,3 +602,16 @@ families: flatten_length, flatten_combine and nestedfill_tags_index. Input/devic
 construction, reference checks and JIT warmup are excluded; result construction,
 completion and deferred-error draining are included. These valid-input public
 cases supplement canonical kernel edge/error tests rather than replace them.
+
+### UnionArray flatten diagnostics
+
+Submit `della-public-unionarray-diagnostics.sbatch` for the default
+`union_flatten:4096:8` investigation. Results are in
+`results/JOB/public-unionarray-diagnostics/`. Untimed trace events retain actual
+kernel invocations (including flatten_length/flatten_combine), nesting, argument
+metadata and available context-capture calls. Separate call-only/completed host
+profiles expose array uploads, allocations and `.get`/`.item` transfer/wait paths.
+These profiles cannot determine transfer bytes or pure GPU execution time; use
+the separate Nsight kernel harness for those. Warmup and CPU comparisons are
+outside profiling, and production kernels are unchanged. Do not run alongside
+other jobs installing into the shared environment.

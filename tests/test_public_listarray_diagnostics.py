@@ -217,7 +217,9 @@ def test_profile_drains_even_if_public_call_raises(include_finish):
     assert drained == [True]
 
 
-@pytest.mark.parametrize("suite", ["listarray", "indexed", "regulararray"])
+@pytest.mark.parametrize(
+    "suite", ["listarray", "indexed", "regulararray", "unionarray"]
+)
 def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
     ak = pytest.importorskip("awkward")
 
@@ -259,6 +261,7 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
                 {
                     "indexed": diag.INDEXED_OPERATIONS,
                     "regulararray": diag.REGULAR_OPERATIONS,
+                    "unionarray": diag.UNION_OPERATIONS,
                 }.get(suite, diag.OPERATIONS)
             ),
             warmup=1,
@@ -268,8 +271,10 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
     )
     path = tmp_path / "diagnostics.json"
     data = json.loads(path.read_text())
-    assert data["complete"] and len(data["cases"]) == 2
-    assert len(list(tmp_path.glob("*.pstats"))) == 4
+    assert data["complete"] and len(data["cases"]) == (
+        1 if suite == "unionarray" else 2
+    )
+    assert len(list(tmp_path.glob("*.pstats"))) == (2 if suite == "unionarray" else 4)
     assert all(row["events"] and row["profiles"]["completed"] for row in data["cases"])
     diag.compare(
         SimpleNamespace(baseline=path, candidate=path, output=tmp_path / "comparison")
