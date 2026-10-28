@@ -539,3 +539,10 @@ reads or lose optimized built-in MIN reduction performance. One algorithm call
 can itself launch multiple device kernels. Only GPU measurement can establish
 whether this is faster. These are prepared-call diagnostics, not public-operation
 benchmarks; backend dispatch/error-context capture are excluded.
+
+After fusion is integrated into the candidate, the stage diagnostic reports
+`validation_and_reduction` and no standalone validation/chunk buffer. Its
+allocation stage follows the two-buffer status/workspace path. The historical
+prototype-comparison script rejects an already-fused production checkout;
+use `712d13f0b` in a separate checkout for that historical comparison. Use the
+completed `--suite indexed` public benchmark to evaluate the integrated revision.

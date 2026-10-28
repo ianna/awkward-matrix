@@ -158,3 +158,46 @@ def test_cli_rejects_small_or_invalid_stage_workloads(monkeypatch, arguments):
     with pytest.raises(SystemExit) as error:
         indexed.main()
     assert error.value.code == 2
+
+
+def test_fused_stages_need_no_chunk_buffer():
+    events = []
+    state = SimpleNamespace(bind=lambda array: None, clear=lambda: None)
+    setup = SimpleNamespace(
+        output=state,
+        outer=state,
+        inner=state,
+        status=state,
+        combine=object(),
+        iterator=object(),
+        length=129,
+        reduce_operation=object(),
+        initial=np.array([129]),
+        reducer=lambda **kwargs: events.append(kwargs),
+        transform=lambda *args: events.append(args),
+        write=object(),
+        discard=object(),
+        reduce_storage_bytes=64,
+    )
+    allocations = []
+
+    def empty(length, dtype):
+        allocations.append((length, dtype))
+        return np.empty(length, dtype=dtype)
+
+    cp = SimpleNamespace(empty=empty, int64=np.int64, uint8=np.uint8)
+    calls, _, _ = indexed.stages(
+        cp,
+        setup,
+        (object(), object(), object()),
+        np.array([129, 0]),
+        None,
+        np.empty(64, dtype=np.uint8),
+        object(),
+    )
+    assert "validation" not in calls and "reduction" not in calls
+    calls["validation_and_reduction"]()
+    assert events[0]["d_in"] is setup.iterator
+    assert events[0]["num_items"] == 129
+    calls["allocation_and_release"]()
+    assert allocations == [(2, np.int64), (64, np.uint8)]

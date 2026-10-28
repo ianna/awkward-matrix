@@ -26,6 +26,7 @@ def inputs(rows, width, error=False):
 
 def stages(cp, setup, arrays, status, positions, storage, stream):
     states = (setup.output, setup.outer, setup.inner, setup.status)
+    fused = hasattr(setup, "combine")
 
     def bind():
         for state, array in zip(states, (*arrays, status), strict=True):
@@ -42,7 +43,12 @@ def stages(cp, setup, arrays, status, positions, storage, stream):
     def allocations():
         # Deliberately include return-to-pool release; no caller buffers or
         # prepared state reference these temporary allocations.
-        if hasattr(setup, "reduce_storage_bytes"):
+        if fused:
+            scratch = (
+                cp.empty(2, dtype=cp.int64),
+                cp.empty(storage.nbytes, dtype=cp.uint8),
+            )
+        elif hasattr(setup, "reduce_storage_bytes"):
             scratch = (
                 cp.empty(2 + setup.chunks, dtype=cp.int64),
                 cp.empty(storage.nbytes, dtype=cp.uint8),
@@ -55,40 +61,39 @@ def stages(cp, setup, arrays, status, positions, storage, stream):
             )
         del scratch
 
-    def workspace_query():
-        return setup.reducer(
-            temp_storage=None,
-            d_in=positions,
-            d_out=status[:1],
-            num_items=setup.chunks,
-            op=setup.reduce_operation,
-            h_init=setup.initial,
-            stream=stream,
-        )
+    arguments = dict(
+        d_in=setup.iterator if fused else positions,
+        d_out=status[:1],
+        num_items=setup.length if fused else setup.chunks,
+        op=setup.reduce_operation,
+        h_init=setup.initial,
+        stream=stream,
+    )
 
-    calls = {
-        "validation": lambda: setup.transform(
+    def workspace_query():
+        return setup.reducer(temp_storage=None, **arguments)
+
+    calls = {}
+    if not fused:
+        calls["validation"] = lambda: setup.transform(
             "check", setup.check, positions, setup.chunks, stream
-        ),
-        "reduction": lambda: setup.reducer(
-            temp_storage=storage,
-            d_in=positions,
-            d_out=status[:1],
-            num_items=setup.chunks,
-            op=setup.reduce_operation,
-            h_init=setup.initial,
-            stream=stream,
-        ),
-        "gather_and_attempt": lambda: setup.transform(
-            "write", setup.write, setup.discard, setup.length, stream
-        ),
-        "workspace_query": workspace_query,
-        "allocation_and_release": allocations,
-        "bind_and_clear": bind_clear,
-        # This is a standalone 16-byte transfer on an otherwise fenced stream.
-        # It does not include waiting for a preceding validation/gather chain.
-        "status_transfer": lambda: status.get().tolist(),
-    }
+        )
+    calls["validation_and_reduction" if fused else "reduction"] = lambda: setup.reducer(
+        temp_storage=storage, **arguments
+    )
+    calls.update(
+        {
+            "gather_and_attempt": lambda: setup.transform(
+                "write", setup.write, setup.discard, setup.length, stream
+            ),
+            "workspace_query": workspace_query,
+            "allocation_and_release": allocations,
+            "bind_and_clear": bind_clear,
+            # This is a standalone 16-byte transfer on an otherwise fenced stream.
+            # It does not include waiting for a preceding validation/gather chain.
+            "status_transfer": lambda: status.get().tolist(),
+        }
+    )
     return calls, bind, clear
 
 
@@ -138,11 +143,12 @@ def run(args):
             assert [row, attempt] == expected_status
             np.testing.assert_array_equal(arrays[0].get(), expected)
             status = cp.asarray(expected_status, dtype=cp.int64)
-            positions = cp.empty(setup.chunks, dtype=cp.int64)
+            fused = hasattr(setup, "combine")
+            positions = None if fused else cp.empty(setup.chunks, dtype=cp.int64)
             arguments = dict(
-                d_in=positions,
+                d_in=setup.iterator if fused else positions,
                 d_out=status[:1],
-                num_items=setup.chunks,
+                num_items=setup.length if fused else setup.chunks,
                 op=setup.reduce_operation,
                 h_init=setup.initial,
                 stream=prepared._Stream(),
@@ -156,8 +162,9 @@ def run(args):
             try:
                 # Initialize reduction input and first-error state in order.
                 bind()
-                calls["validation"]()
-                calls["reduction"]()
+                if not fused:
+                    calls["validation"]()
+                calls["validation_and_reduction" if fused else "reduction"]()
                 calls["gather_and_attempt"]()
                 stream.synchronize()
                 samples = {name: [] for name in calls}
@@ -211,6 +218,7 @@ def run(args):
                 assert status.get().tolist() == expected_status
             finally:
                 clear()
+    report["fused_validation"] = fused
     report["workspace_size_cached_in_production"] = hasattr(
         setup, "reduce_storage_bytes"
     )

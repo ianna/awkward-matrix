@@ -137,6 +137,10 @@ def run(args):
                 "production": prepared._Simplify(*dtype_arguments),
                 "fused": Fused(*dtype_arguments),
             }
+            if hasattr(variants["production"], "combine"):
+                raise ValueError(
+                    "Production is already fused; use checkout 712d13f0b for the historical prototype comparison"
+                )
             samples = {name: [] for name in variants}
             errors = {}
 
