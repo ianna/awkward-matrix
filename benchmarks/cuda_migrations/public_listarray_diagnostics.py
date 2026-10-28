@@ -30,7 +30,7 @@ from workloads import SHAPES
 OPERATIONS = ("slice_jagged", "slice_spread")
 INDEXED_OPERATIONS = ("field_indexed_indexed", "field_indexed_option")
 REGULAR_OPERATIONS = ("regular_advanced", "regular_spread")
-UNION_OPERATIONS = ("union_flatten",)
+UNION_OPERATIONS = ("union_flatten", "union_concatenate")
 
 
 def argument_metadata(value):

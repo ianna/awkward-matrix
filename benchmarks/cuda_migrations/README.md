@@ -615,3 +615,10 @@ These profiles cannot determine transfer bytes or pure GPU execution time; use
 the separate Nsight kernel harness for those. Warmup and CPU comparisons are
 outside profiling, and production kernels are unchanged. Do not run alongside
 other jobs installing into the shared environment.
+
+For the remaining short-list concatenation overhead, submit
+`della-public-unionarray-concatenate-diagnostics.sbatch`. It selects only
+`union_concatenate:4096:8` and records actual dispatch multiplicity, nested context
+capture and separate call-only/completed host profiles. Inspect
+`results/JOB/public-unionarray-concatenate-diagnostics/comparison.md`; full events
+and profiles are retained alongside it. No production algorithm is changed.

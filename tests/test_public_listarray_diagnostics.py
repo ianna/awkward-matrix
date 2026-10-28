@@ -271,10 +271,8 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
     )
     path = tmp_path / "diagnostics.json"
     data = json.loads(path.read_text())
-    assert data["complete"] and len(data["cases"]) == (
-        1 if suite == "unionarray" else 2
-    )
-    assert len(list(tmp_path.glob("*.pstats"))) == (2 if suite == "unionarray" else 4)
+    assert data["complete"] and len(data["cases"]) == 2
+    assert len(list(tmp_path.glob("*.pstats"))) == 4
     assert all(row["events"] and row["profiles"]["completed"] for row in data["cases"])
     diag.compare(
         SimpleNamespace(baseline=path, candidate=path, output=tmp_path / "comparison")
