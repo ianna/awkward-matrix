@@ -44,7 +44,8 @@ def test_inputs_match_cpu_and_preserve_capacity(rows, width, invalid):
     np.testing.assert_array_equal(output[boundary:], np.full(rows + 3 - boundary, 123))
 
 
-def test_stage_boundaries_fixed_buffers_and_stream():
+@pytest.mark.parametrize("compact", [False, True])
+def test_stage_boundaries_fixed_buffers_and_stream(compact):
     events = []
 
     class State:
@@ -82,6 +83,8 @@ def test_stage_boundaries_fixed_buffers_and_stream():
         transform=lambda *args: events.append(("transform", args)),
         reducer=lambda **kwargs: events.append(("reduce", kwargs)),
     )
+    if compact:
+        setup.reduce_storage_bytes = 64
     arrays = tuple(object() for _ in range(3))
     status, partials, stream = Status(), object(), object()
     storage = np.empty(64, dtype=np.uint8)
@@ -117,11 +120,15 @@ def test_stage_boundaries_fixed_buffers_and_stream():
     assert events[0][1]["stream"] is stream
     events.clear()
     calls["allocation_and_release"]()
-    assert events == [
-        ("allocate", 2, np.int64),
-        ("allocate", 3, np.int64),
-        ("allocate", 64, np.uint8),
-    ]
+    assert events == (
+        [("allocate", 5, np.int64), ("allocate", 64, np.uint8)]
+        if compact
+        else [
+            ("allocate", 2, np.int64),
+            ("allocate", 3, np.int64),
+            ("allocate", 64, np.uint8),
+        ]
+    )
     events.clear()
     calls["bind_and_clear"]()
     assert [e[0] for e in events] == ["bind"] * 4 + ["clear"] * 4

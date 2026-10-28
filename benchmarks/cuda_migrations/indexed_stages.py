@@ -42,11 +42,17 @@ def stages(cp, setup, arrays, status, positions, storage, stream):
     def allocations():
         # Deliberately include return-to-pool release; no caller buffers or
         # prepared state reference these temporary allocations.
-        scratch = (
-            cp.empty(2, dtype=cp.int64),
-            cp.empty(setup.chunks, dtype=cp.int64),
-            cp.empty(storage.nbytes, dtype=cp.uint8),
-        )
+        if hasattr(setup, "reduce_storage_bytes"):
+            scratch = (
+                cp.empty(2 + setup.chunks, dtype=cp.int64),
+                cp.empty(storage.nbytes, dtype=cp.uint8),
+            )
+        else:
+            scratch = (
+                cp.empty(2, dtype=cp.int64),
+                cp.empty(setup.chunks, dtype=cp.int64),
+                cp.empty(storage.nbytes, dtype=cp.uint8),
+            )
         del scratch
 
     def workspace_query():
@@ -205,12 +211,17 @@ def run(args):
                 assert status.get().tolist() == expected_status
             finally:
                 clear()
+    report["workspace_size_cached_in_production"] = hasattr(
+        setup, "reduce_storage_bytes"
+    )
     report["complete"] = True
     (directory / "indexed-stages.json").write_text(json.dumps(report, indent=2) + "\n")
     lines = [
         "# Warmed IndexedArray stage diagnostics",
         "",
         "Each stage is fenced independently; do not sum completion times. Validation/reduction/gather use preallocated buffers and workspace. Allocation includes pooled allocation/release; binding includes descriptor updates/clear. Status transfer is a standalone 16-byte get/tolist after prior work is fenced, not total pipeline waiting. Rebinding preparation is outside each measured boundary. CUDA-event times include host submission gaps; cProfile runs separately. Backend dispatch and error-context capture are excluded; use the public benchmark for end-to-end latency.",
+        "",
+        f"Production workspace sizing cached: {report['workspace_size_cached_in_production']}. The isolated workspace_query stage measures query cost even when production caches it.",
         "",
         "| Input | Stage | Host µs | Completed µs | Stream µs |",
         "| --- | --- | --- | --- | --- |",
