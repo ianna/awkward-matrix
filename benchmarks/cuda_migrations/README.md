@@ -569,3 +569,14 @@ functions are included even outside the largest increases. Full profiles and
 trace events are retained; `.get` profiling does not identify transfer bytes or
 separate device waiting from Python overhead. Diagnostic durations are perturbed
 and must not be used as benchmark latencies. Production kernels are unchanged.
+
+### Completed RegularArray slicing and broadcasting
+
+Run `della-public.sbatch regulararray` to compare the historical baseline with
+`CUDA_BENCH/regulararray`. Eight operations at each of the three standard shapes
+cover scalar, strided, reversed, advanced and spread slicing; regular and mixed
+ragged broadcasting; and an out-of-bounds scalar slice. Fixtures explicitly use
+RegularArray. CPU reference values, device inputs and JIT warmup are outside
+timing. Completed latency includes result construction and deferred-error
+draining. Broadcasting may use array-library operations rather than a dedicated
+RegularArray kernel; this suite measures public workflows, not isolated kernels.
