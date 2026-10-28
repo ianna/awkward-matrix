@@ -18,11 +18,17 @@ from unittest.mock import patch
 import numpy as np
 from dispatch import finish_stream
 from measure import environment
-from public_operations import expectation, indexed_cases, listarray_cases
+from public_operations import (
+    expectation,
+    indexed_cases,
+    listarray_cases,
+    regulararray_cases,
+)
 from workloads import SHAPES
 
 OPERATIONS = ("slice_jagged", "slice_spread")
 INDEXED_OPERATIONS = ("field_indexed_indexed", "field_indexed_option")
+REGULAR_OPERATIONS = ("regular_advanced", "regular_spread")
 
 
 def argument_metadata(value):
@@ -217,7 +223,9 @@ def run(args):
     from awkward._errors import ErrorContext
 
     suite = getattr(args, "suite", "listarray")
-    cases = indexed_cases if suite == "indexed" else listarray_cases
+    cases = {"indexed": indexed_cases, "regulararray": regulararray_cases}.get(
+        suite, listarray_cases
+    )
     checkout = Path(args.checkout).resolve()
     if checkout not in Path(ak.__file__).resolve().parents:
         raise ValueError("Imported awkward does not belong to --checkout")
@@ -512,10 +520,12 @@ def main():
     worker.add_argument("--checkout", required=True)
     worker.add_argument("--output", required=True)
     worker.add_argument(
-        "--suite", choices=("listarray", "indexed"), default="listarray"
+        "--suite", choices=("listarray", "indexed", "regulararray"), default="listarray"
     )
     worker.add_argument(
-        "--operation", choices=OPERATIONS + INDEXED_OPERATIONS, action="append"
+        "--operation",
+        choices=OPERATIONS + INDEXED_OPERATIONS + REGULAR_OPERATIONS,
+        action="append",
     )
     worker.add_argument("--shape", action="append")
     worker.add_argument("--warmup", type=int, default=20)
@@ -527,7 +537,10 @@ def main():
     comparison.add_argument("--output", required=True)
     args = parser.parse_args()
     if args.command == "run":
-        allowed = INDEXED_OPERATIONS if args.suite == "indexed" else OPERATIONS
+        allowed = {
+            "indexed": INDEXED_OPERATIONS,
+            "regulararray": REGULAR_OPERATIONS,
+        }.get(args.suite, OPERATIONS)
         args.operation = args.operation or list(allowed)
         if any(name not in allowed for name in args.operation):
             parser.error("Operation does not belong to selected suite")

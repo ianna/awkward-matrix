@@ -491,3 +491,14 @@ def test_regulararray_public_operations(monkeypatch, rows, width):
             assert expected == {"values": reference[name], "error": None}
     assert tuple(inventory) == public.case_names("regulararray", rows, width)
     assert "awkward_RegularArray_getitem_next_range" in seen
+
+
+def test_immediate_regulararray_at_bounds_wrapper():
+    expected = {"error": "index out of range", "error_type": "IndexError"}
+    error = ValueError(
+        "index out of range in compiled CUDA code (awkward_RegularArray_getitem_next_at)"
+    )
+    public.validate_errors([("call", error)], expected)
+    for wrong in (ValueError("index out of range"), RuntimeError(str(error))):
+        with pytest.raises(AssertionError):
+            public.validate_errors([("call", wrong)], expected)

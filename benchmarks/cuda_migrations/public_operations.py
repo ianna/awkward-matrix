@@ -249,7 +249,15 @@ def validate_errors(errors, expected):
                 # ValueError. Preserve the phase and require its CUDA marker;
                 # an unrelated ValueError must not pass as an indexing error.
                 return isinstance(error, IndexError) or (
-                    stage == "finish"
+                    (
+                        stage == "finish"
+                        or (
+                            stage == "call"
+                            and message.startswith(
+                                "index out of range in compiled CUDA code (awkward_RegularArray_getitem_next_at)"
+                            )
+                        )
+                    )
                     and isinstance(error, ValueError)
                     and "index out of range in compiled CUDA code (awkward_" in message
                 )

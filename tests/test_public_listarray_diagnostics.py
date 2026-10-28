@@ -217,7 +217,7 @@ def test_profile_drains_even_if_public_call_raises(include_finish):
     assert drained == [True]
 
 
-@pytest.mark.parametrize("suite", ["listarray", "indexed"])
+@pytest.mark.parametrize("suite", ["listarray", "indexed", "regulararray"])
 def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
     ak = pytest.importorskip("awkward")
 
@@ -256,7 +256,10 @@ def test_worker_roundtrip_without_gpu(tmp_path, monkeypatch, suite):
             shapes=[(2, 3)],
             suite=suite,
             operation=list(
-                diag.INDEXED_OPERATIONS if suite == "indexed" else diag.OPERATIONS
+                {
+                    "indexed": diag.INDEXED_OPERATIONS,
+                    "regulararray": diag.REGULAR_OPERATIONS,
+                }.get(suite, diag.OPERATIONS)
             ),
             warmup=1,
             trace_iterations=2,

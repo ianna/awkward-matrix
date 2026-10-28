@@ -580,3 +580,13 @@ RegularArray. CPU reference values, device inputs and JIT warmup are outside
 timing. Completed latency includes result construction and deferred-error
 draining. Broadcasting may use array-library operations rather than a dedicated
 RegularArray kernel; this suite measures public workflows, not isolated kernels.
+
+For untimed RegularArray advanced/spread dispatch traces and separate host
+profiles, submit `della-public-regulararray-diagnostics.sbatch`. Default shape is
+4096:8. Results are in `results/JOB/public-regulararray-diagnostics/comparison.md`
+with full JSON events and call-only/completed cProfile files alongside. Available
+CUDA context capture methods are traced explicitly. Profile `.get`/`.item` rows
+include waiting and do not measure transfer bytes; nested trace durations overlap.
+Keep these diagnostics separate from the unprofiled public benchmark above.
+The bounds classifier accepts the known immediate CUDA ValueError wrapper for
+RegularArray scalar indexing, while rejecting unrelated ValueErrors.
