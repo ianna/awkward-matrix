@@ -443,3 +443,34 @@ python "$BENCH_ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$BENCH_ROOT/$var
 This refreshes generated artifacts; it does not build C++ or change package
 versions. Use a fresh Python process after regeneration if CUDA initialization
 has already been attempted.
+
+### Completed public IndexedArray simplification
+
+Run the public harness with `--suite indexed`, or on Della:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-public.sbatch indexed
+```
+
+This uses the existing `baseline` and `indexed` checkouts and their wheels. Run
+jobs sequentially because the launcher installs into the shared environment.
+The launcher regenerates signatures before each checkout import.
+Results are written to `results/JOBID/public-indexed/`.
+
+Eight cases per shape select a record field (`array["x"]`) that composes an
+outer indexed/option node with an inner indexed/option field. All four node
+combinations have valid and out-of-bounds variants. The row count is the outer
+index length; width is the inner index length. Option cases include negative
+outer indices and missing inner entries. A record separates the indirections
+because layouts prohibit directly nesting indexed nodes. The public field
+selection, rather than fixture construction, invokes `awkward_IndexedArray_simplify`.
+Host dispatch tests verify that each case reaches that kernel once.
+
+Source layouts and backend transfers, plus CPU reference values/error
+expectations, are prepared before timing. Each measured sample includes public
+field selection, result wrapping, stream completion and deferred-error draining.
+JIT warmup is excluded. Output validation and error classification are outside
+timing. Invalid-index cases retain whether the error occurs during the call or
+completion. A missing/wrong error is a parity failure, never a successful timing.
+These are completed public-operation measurements, not pure device times and
+not a replacement for the isolated kernel/Nsight comparison or its review gate.

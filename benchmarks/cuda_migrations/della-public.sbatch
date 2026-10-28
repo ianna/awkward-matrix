@@ -25,7 +25,7 @@ export OPENBLAS_NUM_THREADS=1
 BENCH_ROOT="$SLURM_SUBMIT_DIR"
 HARNESS="$BENCH_ROOT/awkward-matrix/benchmarks/cuda_migrations/public_operations.py"
 SUITE="${1:-listoffsetarray}"
-case "$SUITE" in listoffsetarray|listarray) ;; *) echo "Unknown suite: $SUITE" >&2; exit 2 ;; esac
+case "$SUITE" in listoffsetarray|listarray|indexed) ;; *) echo "Unknown suite: $SUITE" >&2; exit 2 ;; esac
 RESULTS="$BENCH_ROOT/results/$SLURM_JOB_ID/public-$SUITE"
 mkdir -p "$RESULTS"
 hostname
