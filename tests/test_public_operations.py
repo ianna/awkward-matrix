@@ -162,7 +162,7 @@ def test_public_fixtures_match_independent_cpu_expectations(rows, width):
 
 
 @pytest.mark.parametrize(
-    "suite", ["listoffsetarray", "listarray", "indexed", "regulararray"]
+    "suite", ["listoffsetarray", "listarray", "indexed", "regulararray", "unionarray"]
 )
 def test_worker_warmup_is_excluded_and_complete_reports_compare(
     tmp_path, monkeypatch, suite
@@ -206,7 +206,7 @@ def test_worker_warmup_is_excluded_and_complete_reports_compare(
         public,
         "SHAPES",
         [(2, 3)]
-        if suite in ("listarray", "indexed", "regulararray")
+        if suite in ("listarray", "indexed", "regulararray", "unionarray")
         else [(2, 3), (0, 8), (3, 0)],
     )
     env = {field: "same" for field in public.ENVIRONMENT_FIELDS}
@@ -224,7 +224,9 @@ def test_worker_warmup_is_excluded_and_complete_reports_compare(
         )
     )
     report = json.loads(output.read_text())
-    count = {"listarray": 5, "indexed": 8, "regulararray": 8}.get(suite, 7)
+    count = {"listarray": 5, "indexed": 8, "regulararray": 8, "unionarray": 2}.get(
+        suite, 7
+    )
     assert len(report["measurements"]) == count
     assert len(calls) == count * (1 + 2 * 2 + 2 * 2)
     for case in report["measurements"]:
@@ -502,3 +504,35 @@ def test_immediate_regulararray_at_bounds_wrapper():
     for wrong in (ValueError("index out of range"), RuntimeError(str(error))):
         with pytest.raises(AssertionError):
             public.validate_errors([("call", wrong)], expected)
+
+
+@pytest.mark.parametrize("rows,width", [(3, 4), (32, 8)])
+def test_unionarray_public_dispatch(monkeypatch, rows, width):
+    ak = pytest.importorskip("awkward")
+    from awkward._backends.numpy import NumpyBackend
+
+    seen = set()
+    original = NumpyBackend.__getitem__
+
+    def lookup(self, key):
+        seen.add(key[0])
+        return original(self, key)
+
+    monkeypatch.setattr(NumpyBackend, "__getitem__", lookup)
+    inventory = []
+    for name, source, op in public.unionarray_cases(ak, rows, width):
+        inventory.append(name)
+        assert source.layout.is_union
+        values = ak.to_list(source)
+        expected = (
+            [v for row in values for v in row]
+            if name == "union_flatten"
+            else [row + row for row in values]
+        )
+        assert ak.to_list(op(source)) == expected
+    assert tuple(inventory) == public.case_names("unionarray", rows, width)
+    assert {
+        "awkward_UnionArray_flatten_length",
+        "awkward_UnionArray_flatten_combine",
+        "awkward_UnionArray_nestedfill_tags_index",
+    } <= seen

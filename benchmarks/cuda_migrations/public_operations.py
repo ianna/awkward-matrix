@@ -204,6 +204,32 @@ def regulararray_cases(ak, rows, width, backend="cpu"):
     yield "regular_bounds", source, lambda x: x[:, width]
 
 
+UNIONARRAY_CASES = ("union_flatten", "union_concatenate")
+
+
+def unionarray_cases(ak, rows, width, backend="cpu"):
+    if rows < 1 or width < 1:
+        raise ValueError("UnionArray fixtures require positive dimensions")
+    offsets = np.arange(rows + 1, dtype=np.int64) * width
+    values = ak.contents.NumpyArray(np.arange(rows * width, dtype=np.int64))
+    numbers = ak.contents.ListOffsetArray(ak.index.Index64(offsets), values)
+    records = ak.contents.ListOffsetArray(
+        ak.index.Index64(offsets.copy()), ak.contents.RecordArray([values], ["x"])
+    )
+    source = ak.to_backend(
+        ak.Array(
+            ak.contents.UnionArray(
+                ak.index.Index8((np.arange(rows) % 2).astype(np.int8)),
+                ak.index.Index64(np.arange(rows, dtype=np.int64)),
+                [numbers, records],
+            )
+        ),
+        backend,
+    )
+    yield "union_flatten", source, lambda x: ak.flatten(x, axis=1)
+    yield "union_concatenate", source, lambda x: ak.concatenate([x, x], axis=1)
+
+
 def case_names(suite, rows, width):
     if suite == "listarray":
         return LISTARRAY_CASES
@@ -211,6 +237,8 @@ def case_names(suite, rows, width):
         return INDEXED_CASES
     if suite == "regulararray":
         return REGULARARRAY_CASES
+    if suite == "unionarray":
+        return UNIONARRAY_CASES
     return ("to_regular", "drop_none") + (
         ("to_regular_irregular",) if rows >= 2 and width >= 1 else ()
     )
@@ -328,13 +356,14 @@ def run(args):
                 "listarray": listarray_cases,
                 "indexed": indexed_cases,
                 "regulararray": regulararray_cases,
+                "unionarray": unionarray_cases,
             }.get(suite, cases)
             device_cases = (
                 {
                     name: (source, operation)
                     for name, source, operation in factory(ak, rows, width, "cuda")
                 }
-                if suite in ("listarray", "indexed", "regulararray")
+                if suite in ("listarray", "indexed", "regulararray", "unionarray")
                 else {}
             )
             for name, host, operation in factory(ak, rows, width):
@@ -538,7 +567,13 @@ def main():
     worker = sub.add_parser("run")
     worker.add_argument(
         "--suite",
-        choices=("listoffsetarray", "listarray", "indexed", "regulararray"),
+        choices=(
+            "listoffsetarray",
+            "listarray",
+            "indexed",
+            "regulararray",
+            "unionarray",
+        ),
         default="listoffsetarray",
     )
     worker.add_argument("--checkout", required=True)

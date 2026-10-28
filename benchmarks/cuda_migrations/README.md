@@ -590,3 +590,15 @@ include waiting and do not measure transfer bytes; nested trace durations overla
 Keep these diagnostics separate from the unprofiled public benchmark above.
 The bounds classifier accepts the known immediate CUDA ValueError wrapper for
 RegularArray scalar indexing, while rejecting unrelated ValueErrors.
+
+### Completed UnionArray operations
+
+Submit `della-public.sbatch unionarray` to compare baseline and the
+`CUDA_BENCH/unionarray` checkout. Public `ak.flatten(axis=1)` and
+`ak.concatenate(axis=1)` run at all three standard shapes (six cases).
+Explicit unions of numeric lists and record lists preserve heterogeneous
+contents; CPU tests verify values/order and dispatch to all three migrated
+families: flatten_length, flatten_combine and nestedfill_tags_index. Input/device
+construction, reference checks and JIT warmup are excluded; result construction,
+completion and deferred-error draining are included. These valid-input public
+cases supplement canonical kernel edge/error tests rather than replace them.
