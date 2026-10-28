@@ -505,3 +505,37 @@ measurement. CUDA-event intervals include submission gaps. Backend dispatch and
 error-context capture are excluded; compare with the kernel/public harnesses
 before attributing any remaining difference. These are diagnostics, not pure
 GPU execution times or an end-to-end speedup claim.
+
+### Experimental validation/reduction fusion
+
+`indexed_fusion.py` compares the prepared production simplify path against a
+benchmark-only prototype. Production dispatch is unchanged. The prototype
+reduces row numbers from a CountingIterator with a stateful binary operation:
+`g(i)` is `i` for an invalid outer index and the length sentinel otherwise;
+`f(a, b) = min(g(a), g(b))`. On that domain `g` is idempotent, so the operation
+is associative and commutative. Negative outer indices remain valid missing
+entries. The result feeds the existing guarded parallel gather/attempt packing.
+No TransformIterator is used: this avoids reintroducing the iterator path that
+previously failed on the supported CCCL/Numba combination. Stateful reduction
+operators still require real GPU compilation/execution validation.
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-indexed-fusion.sbatch
+```
+
+Results are in `results/JOBID/indexed-fusion/indexed-fusion.{md,json}`. The run
+compares valid inputs and errors at the first/middle/last row. Both implementations
+include their actual allocations, rebinding, reduction/gather, status transfer
+and stream completion. JIT warmup, resets, references and parity checks are
+outside timing, with variant order alternating by repeat. Full output buffers
+(including the untouched suffix on errors) and error row/attempt are checked.
+Compilation or launch failure checkpoints the failure and aborts the worker;
+no production fallback or silent performance claim is made. The candidate
+check-out must contain the prepared `_indexedarray` helper.
+
+The fused design removes the chunk-results array and separate validation
+transform, but it evaluates index validity inside the reduction and may repeat
+reads or lose optimized built-in MIN reduction performance. One algorithm call
+can itself launch multiple device kernels. Only GPU measurement can establish
+whether this is faster. These are prepared-call diagnostics, not public-operation
+benchmarks; backend dispatch/error-context capture are excluded.
