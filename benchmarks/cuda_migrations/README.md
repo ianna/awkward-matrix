@@ -474,3 +474,34 @@ timing. Invalid-index cases retain whether the error occurs during the call or
 completion. A missing/wrong error is a parity failure, never a successful timing.
 These are completed public-operation measurements, not pure device times and
 not a replacement for the isolated kernel/Nsight comparison or its review gate.
+
+### IndexedArray large-path stage diagnostics
+
+After updating `awkward-matrix`, submit from `CUDA_BENCH`:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-indexed-stages.sbatch
+```
+
+This uses the `indexed` checkout/wheel and measures 4096 outer indices and 8
+inner entries by default. Optional `--rows` (must exceed 64), `--width`, warmup,
+iteration, repeat and profile counts are forwarded to the Python diagnostic.
+Results are in `results/JOBID/indexed-stages/indexed-stages.{md,json}`, with
+separate per-stage `.txt`/`.pstats` profiles. Use sequential jobs because the
+launcher modifies the shared Conda environment.
+
+The actual prepared implementation supplies validation, first-error reduction
+and gather/attempt packing. Separate stages measure reduction workspace sizing,
+pooled scratch allocation/release, metadata rebinding/clearing and the 16-byte
+status `get().tolist()`. Valid and out-of-range inputs are first compared with
+compiled CPU results, including output capacity after the first error. JIT
+warmup is excluded, cProfile runs separately, and stage order rotates by repeat.
+
+Each stage is fenced independently. The status-copy stage starts after prior
+work is complete; it does not include waiting for an entire validation/gather
+pipeline. Do not sum stage completion times to estimate public latency. Kernel
+stages use preallocated scratch, and binding preparation is outside their
+measurement. CUDA-event intervals include submission gaps. Backend dispatch and
+error-context capture are excluded; compare with the kernel/public harnesses
+before attributing any remaining difference. These are diagnostics, not pure
+GPU execution times or an end-to-end speedup claim.
