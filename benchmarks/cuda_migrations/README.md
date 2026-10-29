@@ -636,3 +636,29 @@ Both reports are written before the kernel gate controls job exit status.
 Requires the existing environment, wheels and Nsight installation. Avoid concurrent
 jobs installing into the shared environment. Run artifacts, not host simulation,
 are needed to establish CUDA parity and the final performance gate.
+
+### ListArray review validation
+
+`della-listarray-review.sbatch` rebuilds the current `listarray/awkward-cpp`
+(including the padding bounds fix), runs CPU/host callbacks, GPU contracts and
+both explicit generated CUDA test variants, then measures baseline and candidate
+sequentially. Existing baseline wheels are reused; candidate CPU wheels are not.
+It also runs `listarray_review.py`: 40 distinct jagged shapes followed by the
+first shape again expose shape-dependent setup/JIT churn, and warmed
+`next_array` cases include four rows with 1,048,576 indices. First-use timings
+include setup/JIT and may use disk compiler caches; they are separate from the
+warmed medians. Input construction, output comparisons and warmup are excluded
+from warmed measurements. Runtime scalar uploads are included.
+
+Submit from `CUDA_BENCH` after updating the candidate and this repository:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-listarray-review.sbatch
+```
+
+Reports are under `results/JOB/listarray-review/`: `review.md`,
+`kernels/comparison.md`, `public/comparison.md`, environment/commit records and
+JUnit files. The old baseline's known jagged bounds error mismatch remains
+visible in the public report; inspect candidate parity separately. A successful
+batch exit alone does not mean the performance review gate passed. Avoid other
+jobs installing into the shared Conda environment while this job runs.
