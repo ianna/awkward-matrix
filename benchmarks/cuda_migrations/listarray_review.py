@@ -20,11 +20,29 @@ def shapes():
     return [(rows, 2 + rows % 7) for rows in range(2, 42)]
 
 
+def compilation_probe(jit, call):
+    """Count stateful operator compiles in a separate diagnostic call."""
+    original = jit._StatefulOp.compile
+    compiled = []
+
+    def track(operator, *args, **kwargs):
+        compiled.append(operator.func.__qualname__)
+        return original(operator, *args, **kwargs)
+
+    jit._StatefulOp.compile = track
+    try:
+        result = call()
+    finally:
+        jit._StatefulOp.compile = original
+    return compiled, result
+
+
 def run(args):
     import awkward as ak
     import cupy as cp
     from awkward._backends.cupy import CupyBackend
     from awkward._connect import cuda
+    from cuda.compute import _jit
 
     checkout = args.checkout.resolve()
     if not Path(ak.__file__).resolve().is_relative_to(checkout):
@@ -114,11 +132,21 @@ def run(args):
                 samples.append((host, completed))
             np.testing.assert_array_equal(cp.asnumpy(output), np.arange(rows * width))
             np.testing.assert_array_equal(cp.asnumpy(advanced), np.tile(indices, rows))
+            # Instrument only after all timing samples and parity comparisons.
+            # A warmed repeat should not recompile a stateful iterator/operator.
+            compiled, (error, _, _) = compilation_probe(
+                _jit, lambda: invoke(kernel, values)
+            )
+            if isinstance(error, Exception) or (
+                error is not None and getattr(error, "str", None) is not None
+            ):
+                raise AssertionError(error)
             results.append(
                 dict(
                     case=f"long_next_array:{rows}:{width}",
                     host_us=statistics.median(x[0] for x in samples),
                     completed_us=statistics.median(x[1] for x in samples),
+                    stateful_compiles_in_untimed_repeat=compiled,
                 )
             )
     cache = {}
@@ -151,14 +179,20 @@ def compare(args):
     text = [
         "# ListArray review regression measurements",
         "",
-        "First-use rows include setup/JIT and may use disk caches; long_next_array rows are warmed. Completed time includes stream completion/error draining. Parity is checked outside timing.",
+        "First-use rows include setup/JIT and may use disk caches; long_next_array rows are warmed. Completed time includes stream completion/error draining. Parity is checked outside timing. Compilation counts come from a separate untimed repeat after warmup, and do not perturb timing samples.",
         "",
-        "| Case | Host µs baseline → candidate | Completed µs baseline → candidate |",
-        "| --- | --- | --- |",
+        "| Case | Host µs baseline → candidate | Completed µs baseline → candidate | Untimed repeat compiles baseline → candidate |",
+        "| --- | --- | --- | --- |",
     ]
     for left, right in zip(baseline["cases"], candidate["cases"], strict=True):
+        counts = [
+            str(len(case["stateful_compiles_in_untimed_repeat"]))
+            if "stateful_compiles_in_untimed_repeat" in case
+            else "—"
+            for case in (left, right)
+        ]
         text.append(
-            f"| {left['case']} | {left['host_us']:.3f} → {right['host_us']:.3f} | {left['completed_us']:.3f} → {right['completed_us']:.3f} |"
+            f"| {left['case']} | {left['host_us']:.3f} → {right['host_us']:.3f} | {left['completed_us']:.3f} → {right['completed_us']:.3f} | {counts[0]} → {counts[1]} |"
         )
     text += ["", f"Candidate setup cache: `{candidate['setup_cache']}`", ""]
     args.output.write_text("\n".join(text))

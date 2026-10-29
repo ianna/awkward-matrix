@@ -97,3 +97,28 @@ def test_batch_ignores_stale_compiler_and_fails_before_profiling(tmp_path):
     assert not any("/opt/rh/" in arg for arg in arguments)
     assert not any("measure.py" in arg for arg in arguments)
     assert (results / "cpu-build.log").is_file()
+
+
+def test_compilation_probe_records_calls_and_restores_on_error():
+    from benchmarks.cuda_migrations.listarray_review import compilation_probe
+
+    class Stateful:
+        def __init__(self):
+            self.func = shapes
+
+        def compile(self, value):
+            return value + 1
+
+    jit = SimpleNamespace(_StatefulOp=Stateful)
+    original = Stateful.compile
+    compiled, value = compilation_probe(jit, lambda: Stateful().compile(41))
+    assert compiled == [shapes.__qualname__]
+    assert value == 42
+    assert Stateful.compile is original
+
+    def failing():
+        raise RuntimeError("diagnostic failure")
+
+    with pytest.raises(RuntimeError, match="diagnostic failure"):
+        compilation_probe(jit, failing)
+    assert Stateful.compile is original

@@ -653,6 +653,12 @@ first shape again expose shape-dependent setup/JIT churn, and warmed
 include setup/JIT and may use disk compiler caches; they are separate from the
 warmed medians. Input construction, output comparisons and warmup are excluded
 from warmed measurements. Runtime scalar uploads are included.
+After each warmed `next_array` measurement, a separate diagnostic call counts
+CCCL stateful-operator compilations. The JSON records the operator names and
+the Markdown report shows the counts; the fixed prepared path should report
+zero. Instrumentation is restored afterward and never runs inside timing
+samples. First-use compilation when switching between the small and parallel
+jagged paths remains visible in the varying-shape rows.
 
 Submit from `CUDA_BENCH` after updating the candidate and this repository:
 
