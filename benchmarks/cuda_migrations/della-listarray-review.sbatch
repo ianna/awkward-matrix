@@ -31,7 +31,7 @@ nvidia-smi
 python -m pip freeze > "$RESULTS/environment.txt"
 git -C "$ROOT/baseline" rev-parse HEAD > "$RESULTS/baseline-sha.txt"
 git -C "$ROOT/listarray" rev-parse HEAD > "$RESULTS/candidate-sha.txt"
-python -m pip install scikit-build-core pybind11 pyyaml
+python -m pip install 'scikit-build-core>=1.0' 'pybind11>=3' pyyaml
 for variant in baseline listarray; do
     if [ "$variant" = baseline ]; then
         python -m pip install --no-index --no-deps --force-reinstall "$ROOT/wheels/baseline/"*.whl
