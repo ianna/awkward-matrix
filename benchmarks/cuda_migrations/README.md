@@ -643,6 +643,10 @@ are needed to establish CUDA parity and the final performance gate.
 (including the padding bounds fix), runs CPU/host callbacks, GPU contracts and
 both explicit generated CUDA test variants, then measures baseline and candidate
 sequentially. Existing baseline wheels are reused; candidate CPU wheels are not.
+The candidate wheel is built before profiling with compilers resolved from the
+compute node's PATH and a fresh job-specific CMake build directory. Compiler
+versions, `cpu-build.log` and the wheel are retained in the results directory;
+an old `build/cpython-*` cache cannot select an unavailable compiler.
 It also runs `listarray_review.py`: 40 distinct jagged shapes followed by the
 first shape again expose shape-dependent setup/JIT churn, and warmed
 `next_array` cases include four rows with 1,048,576 indices. First-use timings

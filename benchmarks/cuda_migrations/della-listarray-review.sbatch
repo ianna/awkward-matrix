@@ -32,12 +32,35 @@ python -m pip freeze > "$RESULTS/environment.txt"
 git -C "$ROOT/baseline" rev-parse HEAD > "$RESULTS/baseline-sha.txt"
 git -C "$ROOT/listarray" rev-parse HEAD > "$RESULTS/candidate-sha.txt"
 python -m pip install 'scikit-build-core>=1.0' 'pybind11>=3' pyyaml
+# Conda activation or an earlier wheel build may name a compiler that is not
+# installed on this compute node. Resolve the module's tools from PATH and do
+# not reuse the checkout's build/cpython-* CMake cache.
+export CC="$(type -P gcc || type -P cc)"
+export CXX="$(type -P g++ || type -P c++)"
+if [ ! -x "$CC" ] || [ ! -x "$CXX" ]; then
+    echo "No working C/C++ compiler found on the compute node" >&2
+    exit 1
+fi
+{
+    printf 'CC=%s\nCXX=%s\n' "$CC" "$CXX"
+    "$CC" --version
+    "$CXX" --version
+} > "$RESULTS/compilers.txt"
+cat "$RESULTS/compilers.txt"
+# Fail before profiling the baseline if the candidate cannot be built. Keep
+# the wheel and complete build log with this job's results for diagnosis.
+python -m pip wheel --no-deps --no-build-isolation \
+    --wheel-dir "$RESULTS/wheels" \
+    --config-settings="build-dir=$RESULTS/cpu-build" \
+    --config-settings="cmake.define.CMAKE_C_COMPILER=$CC" \
+    --config-settings="cmake.define.CMAKE_CXX_COMPILER=$CXX" \
+    "$ROOT/listarray/awkward-cpp" 2>&1 | tee "$RESULTS/cpu-build.log"
 for variant in baseline listarray; do
     if [ "$variant" = baseline ]; then
         python -m pip install --no-index --no-deps --force-reinstall "$ROOT/wheels/baseline/"*.whl
     else
         # The padding/size fixes require freshly built CPU kernels, not the old wheel.
-        python -m pip install --no-deps --no-build-isolation --force-reinstall "$ROOT/listarray/awkward-cpp"
+        python -m pip install --no-index --no-deps --force-reinstall "$RESULTS/wheels/"*.whl
     fi
     python "$ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$ROOT/$variant"
     python -m pip install --no-deps --no-build-isolation -e "$ROOT/$variant"
