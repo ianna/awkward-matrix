@@ -53,7 +53,11 @@ def test_workloads_native(suite, rows, width):
         result = NumpyBackend.instance()[measure.key_for(name, values)](*values)
         assert not result.str
         for before, after in zip(first, values, strict=True):
-            np.testing.assert_array_equal(before, after)
+            if isinstance(before, workloads.PointerTable):
+                for a, b in zip(before.buffers, after.buffers, strict=True):
+                    np.testing.assert_array_equal(a, b)
+            else:
+                np.testing.assert_array_equal(before, after)
     assert names == workloads.SUITES[suite]
 
 
@@ -203,6 +207,10 @@ def test_worker_resets_inout_scratch(tmp_path, monkeypatch):
     from awkward._connect import cuda
 
     class DeviceArray(np.ndarray):
+        @property
+        def data(self):
+            return SimpleNamespace(ptr=self.ctypes.data)
+
         def get(self, stream=None):
             return np.asarray(self).copy()
 
@@ -240,7 +248,10 @@ def test_worker_resets_inout_scratch(tmp_path, monkeypatch):
                 # The repeated performance cases have regular nonzero counts.
                 # Check the original starts before permitting native writes;
                 # a missed reset would otherwise write beyond the output.
-                if values[-1] >= 32:
+                if (
+                    key[0] == "awkward_UnionArray_nestedfill_tags_index"
+                    and values[-1] >= 32
+                ):
                     np.testing.assert_array_equal(
                         values[2], np.arange(values[-1]) * int(values[4][0])
                     )
@@ -280,8 +291,8 @@ def test_worker_resets_inout_scratch(tmp_path, monkeypatch):
     )
     data = json.loads(output.read_text())
     assert all(x["status"] == "passed" for x in data["parity"])
-    assert len(data["measurements"]) == 3
-    assert len(calls) == len(data["parity"]) + 3 * 7
+    assert len(data["measurements"]) == 9
+    assert len(calls) == len(data["parity"]) + 9 * 7
     assert all(x["cuda_trace"] is None for x in data["measurements"])
 
 
