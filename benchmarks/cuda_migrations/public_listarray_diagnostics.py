@@ -11,17 +11,26 @@ import statistics
 import time
 import traceback
 from collections import Counter
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 from dispatch import finish_stream
 from measure import environment
-from public_operations import expectation, listarray_cases
+from public_operations import (
+    expectation,
+    indexed_cases,
+    listarray_cases,
+    regulararray_cases,
+    unionarray_cases,
+)
 from workloads import SHAPES
 
 OPERATIONS = ("slice_jagged", "slice_spread")
+INDEXED_OPERATIONS = ("field_indexed_indexed", "field_indexed_option")
+REGULAR_OPERATIONS = ("regular_advanced", "regular_spread")
+UNION_OPERATIONS = ("union_flatten", "union_concatenate")
 
 
 def argument_metadata(value):
@@ -81,7 +90,7 @@ class Recorder:
             self.active.pop()
 
     @contextmanager
-    def install(self, backend_class, cuda=None):
+    def install(self, backend_class, cuda=None, error_context=None):
         original = backend_class.__getitem__
         recorder = self
 
@@ -105,7 +114,21 @@ class Recorder:
         def lookup(backend, key):
             return Traced(original(backend, key), key)
 
-        with patch.object(backend_class, "__getitem__", lookup):
+        with ExitStack() as patches:
+            patches.enter_context(patch.object(backend_class, "__getitem__", lookup))
+            if error_context is not None:
+                for name in ("frozen_primary", "cuda_primary"):
+                    if hasattr(error_context, name):
+                        original_capture = getattr(error_context, name)
+
+                        def capture(cls, _original=original_capture, _name=name):
+                            return recorder.invoke(
+                                "error_context", _name, "Awkward", _original
+                            )
+
+                        patches.enter_context(
+                            patch.object(error_context, name, classmethod(capture))
+                        )
             if cuda is None:
                 yield
             else:
@@ -199,7 +222,14 @@ def run(args):
     import cupy as cp
     from awkward._backends.backend import Backend
     from awkward._connect import cuda
+    from awkward._errors import ErrorContext
 
+    suite = getattr(args, "suite", "listarray")
+    cases = {
+        "indexed": indexed_cases,
+        "regulararray": regulararray_cases,
+        "unionarray": unionarray_cases,
+    }.get(suite, listarray_cases)
     checkout = Path(args.checkout).resolve()
     if checkout not in Path(ak.__file__).resolve().parents:
         raise ValueError("Imported awkward does not belong to --checkout")
@@ -209,6 +239,7 @@ def run(args):
         "environment": environment(cp, checkout),
         "complete": False,
         "settings": {
+            "suite": suite,
             "shapes": args.shapes,
             "operations": args.operation,
             "warmup": args.warmup,
@@ -221,13 +252,10 @@ def run(args):
     stream = cp.cuda.Stream(non_blocking=True)
     with stream:
         for rows, width in args.shapes:
-            cpu = {
-                name: (source, op)
-                for name, source, op in listarray_cases(ak, rows, width)
-            }
+            cpu = {name: (source, op) for name, source, op in cases(ak, rows, width)}
             gpu = {
                 name: (source, op)
-                for name, source, op in listarray_cases(ak, rows, width, "cuda")
+                for name, source, op in cases(ak, rows, width, "cuda")
             }
             for name in args.operation:
                 case_id = f"{name}:{rows}:{width}"
@@ -251,7 +279,7 @@ def run(args):
                 recorder = Recorder()
                 for iteration in range(args.trace_iterations):
                     recorder.iteration = iteration
-                    with recorder.install(Backend, cuda):
+                    with recorder.install(Backend, cuda, ErrorContext):
                         recorder.phase = "call"
                         result = call()
                         recorder.phase = "finish"
@@ -335,7 +363,7 @@ def compare(args):
         "cases": [],
     }
     lines = [
-        "# Public ListArray dispatch and host profiles",
+        f"# Public {old['settings'].get('suite', 'listarray')} dispatch and host profiles",
         "",
         "Diagnostic passes only: tracing and cProfile perturb execution. These values are not benchmark latencies or pure GPU times. Kernel wrapper host durations include any internal waits. Nested events overlap; do not sum them. Profile tables use exclusive self time to avoid double-counting callers.",
         "",
@@ -400,10 +428,93 @@ def compare(args):
                 "profile_deltas": profiles,
             }
         )
+    if old["settings"].get("suite") == "indexed" and all(
+        name in old["settings"]["operations"] for name in INDEXED_OPERATIONS
+    ):
+        result["paired_profiles"] = paired_profiles(old, new, lines)
     prefix = Path(args.output)
     prefix.parent.mkdir(parents=True, exist_ok=True)
     Path(str(prefix) + ".json").write_text(json.dumps(result, indent=2) + "\n")
     Path(str(prefix) + ".md").write_text("\n".join(lines) + "\n")
+
+
+def paired_profiles(old, new, lines):
+    """Compare option minus indexed within each revision, using exclusive time."""
+    pairs = []
+    count = old["settings"]["profile_iterations"]
+    for rows, width in old["settings"]["shapes"]:
+        names = [f"{name}:{rows}:{width}" for name in INDEXED_OPERATIONS]
+        for boundary in ("call_only", "completed"):
+            profiles = []
+            for report in (old, new):
+                cases = {row["case"]: row for row in report["cases"]}
+                profiles.append(
+                    [
+                        normalize_profile(cases[name]["profiles"][boundary])
+                        for name in names
+                    ]
+                )
+            keys = set().union(*(p.keys() for pair in profiles for p in pair))
+            changes = []
+            for key in keys:
+                values = [p[key] * 1e6 / count for pair in profiles for p in pair]
+                changes.append(
+                    {
+                        "file": key[0],
+                        "function": key[1],
+                        "baseline_indexed_us": values[0],
+                        "baseline_option_us": values[1],
+                        "candidate_indexed_us": values[2],
+                        "candidate_option_us": values[3],
+                        "candidate_option_minus_indexed_us": values[3] - values[2],
+                        "excess_delta_us": values[3]
+                        - values[2]
+                        - values[1]
+                        + values[0],
+                    }
+                )
+            changes.sort(
+                key=lambda x: x["candidate_option_minus_indexed_us"], reverse=True
+            )
+            pairs.append(
+                {"shape": [rows, width], "boundary": boundary, "functions": changes}
+            )
+            lines.extend(
+                [
+                    "",
+                    f"## Paired indexed→option versus indexed→indexed: {rows}:{width}, {boundary}",
+                    "",
+                    "Exclusive host time only. Status get/tolist, dispatch and context functions remain individual rows; these profiles do not measure DToH bytes.",
+                    "",
+                    "| Function | Baseline indexed / option µs | Candidate indexed / option µs | Candidate option − indexed µs | Change in gap µs |",
+                    "| --- | --- | --- | --- | --- |",
+                ]
+            )
+            # Include focused functions even when absent from the largest increases.
+            focused = [
+                x
+                for x in changes
+                if any(
+                    token in (x["file"] + x["function"])
+                    for token in (
+                        "_errors.py",
+                        "_kernels.py",
+                        "_indexedarray.py",
+                        "_compute.py",
+                        "'get'",
+                        "'tolist'",
+                        "frozen_primary",
+                        "cuda_primary",
+                        "__getitem__",
+                    )
+                )
+            ]
+            selected = changes[:20] + [x for x in focused if x not in changes[:20]]
+            for x in selected:
+                lines.append(
+                    f"| {x['file']}:{x['function']} | {x['baseline_indexed_us']:.3f} / {x['baseline_option_us']:.3f} | {x['candidate_indexed_us']:.3f} / {x['candidate_option_us']:.3f} | {x['candidate_option_minus_indexed_us']:.3f} | {x['excess_delta_us']:.3f} |"
+                )
+    return pairs
 
 
 def main():
@@ -412,7 +523,16 @@ def main():
     worker = sub.add_parser("run")
     worker.add_argument("--checkout", required=True)
     worker.add_argument("--output", required=True)
-    worker.add_argument("--operation", choices=OPERATIONS, action="append")
+    worker.add_argument(
+        "--suite",
+        choices=("listarray", "indexed", "regulararray", "unionarray"),
+        default="listarray",
+    )
+    worker.add_argument(
+        "--operation",
+        choices=OPERATIONS + INDEXED_OPERATIONS + REGULAR_OPERATIONS + UNION_OPERATIONS,
+        action="append",
+    )
     worker.add_argument("--shape", action="append")
     worker.add_argument("--warmup", type=int, default=20)
     worker.add_argument("--trace-iterations", type=int, default=3)
@@ -423,7 +543,14 @@ def main():
     comparison.add_argument("--output", required=True)
     args = parser.parse_args()
     if args.command == "run":
-        args.operation = args.operation or list(OPERATIONS)
+        allowed = {
+            "indexed": INDEXED_OPERATIONS,
+            "regulararray": REGULAR_OPERATIONS,
+            "unionarray": UNION_OPERATIONS,
+        }.get(args.suite, OPERATIONS)
+        args.operation = args.operation or list(allowed)
+        if any(name not in allowed for name in args.operation):
+            parser.error("Operation does not belong to selected suite")
         args.shapes = (
             [tuple(map(int, s.split(":"))) for s in args.shape]
             if args.shape

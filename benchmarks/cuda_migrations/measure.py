@@ -16,11 +16,25 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from workloads import SHAPES, SUITES, workloads
+from workloads import SHAPES, SUITES, PointerTable, workloads
 
 
 def clone(values):
     return [x.copy() if isinstance(x, np.ndarray) else x for x in values]
+
+
+def device_arguments(cp, values):
+    device, pointees = [], {}
+    for value in values:
+        if isinstance(value, PointerTable):
+            buffers = [cp.asarray(x) for x in value.buffers]
+            pointees[id(value)] = buffers
+            device.append(
+                cp.asarray(np.array([x.data.ptr for x in buffers], dtype=np.int64))
+            )
+        else:
+            device.append(cp.asarray(value) if isinstance(value, np.ndarray) else value)
+    return device, pointees
 
 
 def key_for(name, values):
@@ -47,6 +61,9 @@ def canonical(checkout, suite):
                 for argument in specialization["args"]:
                     name, typename = argument["name"], argument["type"]
                     value = case["inputs"].get(name)
+                    if typename == "List[List[int64_t]]":
+                        args.append(PointerTable(value or []))
+                        continue
                     if "List[" in typename:
                         dtype = np.dtype(
                             typename.split("List[")[1].split("]")[0].removesuffix("_t")
@@ -323,16 +340,27 @@ def worker(args):
         host = clone(values)
         key = key_for(name, host)
         expected_error = cpu_backend[key](*host)
-        device = [cp.asarray(x) if isinstance(x, np.ndarray) else x for x in original]
+        device, pointees = device_arguments(cp, original)
         kernel = gpu_backend[key]
 
         def reset():
             for target, source in zip(device, original, strict=True):
-                if isinstance(source, np.ndarray):
+                if isinstance(source, PointerTable):
+                    for target_buffer, source_buffer in zip(
+                        pointees[id(source)], source.buffers, strict=True
+                    ):
+                        target_buffer.set(source_buffer, stream=stream)
+                elif isinstance(source, np.ndarray):
                     target.set(source, stream=stream)
 
         def call():
             return kernel(*device)
+
+        call.pointees = {
+            i: pointees[id(value)]
+            for i, value in enumerate(original)
+            if isinstance(value, PointerTable)
+        }
 
         return original, host, expected_error, device, reset, call
 
@@ -360,6 +388,15 @@ def worker(args):
             raise AssertionError(actual_message)
         # Compare every buffer, including output tails and unchanged inputs.
         for i, value in enumerate(expected):
+            if isinstance(value, PointerTable):
+                # Pointer values differ between host and device. Compare pointees.
+                for buffer, expected_buffer in zip(
+                    call.pointees[i], value.buffers, strict=True
+                ):
+                    np.testing.assert_array_equal(
+                        buffer.get(stream=stream), expected_buffer
+                    )
+                continue
             if isinstance(value, np.ndarray):
                 np.testing.assert_array_equal(
                     device[i].get(stream=stream), value, err_msg=f"{name} argument {i}"

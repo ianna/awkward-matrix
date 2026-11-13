@@ -21,9 +21,26 @@ SUITES = {
         "awkward_RegularArray_getitem_next_array_regularize",
         "awkward_RegularArray_reduce_local_nextparents_64",
     ],
-    "unionarray": ["awkward_UnionArray_nestedfill_tags_index"],
+    "unionarray": [
+        "awkward_UnionArray_flatten_length",
+        "awkward_UnionArray_flatten_combine",
+        "awkward_UnionArray_nestedfill_tags_index",
+    ],
 }
 SHAPES = [(32, 8), (4096, 8), (32, 4096)]
+
+
+class PointerTable(np.ndarray):
+    """Host table with owned pointees; GPU setup rebuilds device addresses."""
+
+    def __new__(cls, buffers):
+        buffers = tuple(np.asarray(x, dtype=np.int64).copy() for x in buffers)
+        table = np.array([x.ctypes.data for x in buffers], dtype=np.int64).view(cls)
+        table.buffers = buffers
+        return table
+
+    def copy(self, order="C"):
+        return PointerTable(self.buffers)
 
 
 def workloads(suite, rows, width):
@@ -105,6 +122,22 @@ def workloads(suite, rows, width):
             empty(rows * width),
             width,
             rows,
+        ],
+        "awkward_UnionArray_flatten_length": [
+            empty(1),
+            (np.arange(rows) % 2).astype(np.int8),
+            np.arange(rows, dtype=np.int64),
+            rows,
+            PointerTable([offsets, offsets + 2]),
+        ],
+        "awkward_UnionArray_flatten_combine": [
+            np.full(rows * width + 4, 99, dtype=np.int8),
+            empty(rows * width),
+            empty(rows + 1),
+            (np.arange(rows) % 2).astype(np.int8),
+            np.arange(rows, dtype=np.int64),
+            rows,
+            PointerTable([offsets, offsets + 2]),
         ],
         "awkward_UnionArray_nestedfill_tags_index": [
             empty(rows * width),

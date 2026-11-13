@@ -107,9 +107,138 @@ def listarray_cases(ak, rows, width, backend="cpu"):
     yield "slice_jagged_bounds", source, lambda x: x[:, bad_jagged]
 
 
+INDEXED_CASES = tuple(
+    f"field_{outer}_{inner}{suffix}"
+    for outer in ("indexed", "option")
+    for inner in ("indexed", "option")
+    for suffix in ("", "_bounds")
+)
+
+
+def indexed_cases(ak, rows, width, backend="cpu"):
+    if rows < 1 or width < 1:
+        raise ValueError("Indexed fixtures require positive rows and width")
+    # Indexed nodes cannot directly contain other indexed nodes. A record field
+    # holds the inner indirection; public field selection composes the indices.
+    for outer_option in (False, True):
+        for inner_option in (False, True):
+            inner_index = np.arange(width - 1, -1, -1, dtype=np.int64)
+            if inner_option:
+                inner_index[::3] = -1
+            inner_class = (
+                ak.contents.IndexedOptionArray
+                if inner_option
+                else ak.contents.IndexedArray
+            )
+            inner = inner_class(
+                ak.index.Index64(inner_index),
+                ak.contents.NumpyArray(np.arange(width, dtype=np.int64)),
+            )
+            record = ak.contents.RecordArray([inner], ["x"])
+            outer_index = np.arange(rows, dtype=np.int64) % width
+            if outer_option:
+                outer_index[::5] = -1
+            outer_class = (
+                ak.contents.IndexedOptionArray
+                if outer_option
+                else ak.contents.IndexedArray
+            )
+            for invalid in (False, True):
+                index = outer_index.copy()
+                if invalid:
+                    index[rows // 2] = width
+                source = ak.Array(outer_class(ak.index.Index64(index), record))
+                source = ak.to_backend(source, backend)
+                name = (
+                    f"field_{'option' if outer_option else 'indexed'}_"
+                    f"{'option' if inner_option else 'indexed'}"
+                    f"{'_bounds' if invalid else ''}"
+                )
+                yield name, source, lambda x: x["x"]
+
+
+REGULARARRAY_CASES = (
+    "regular_at",
+    "regular_range",
+    "regular_reverse",
+    "regular_advanced",
+    "regular_spread",
+    "regular_broadcast",
+    "regular_broadcast_ragged",
+    "regular_bounds",
+)
+
+
+def regulararray_cases(ak, rows, width, backend="cpu"):
+    if rows < 1 or width < 1:
+        raise ValueError("RegularArray fixtures require positive dimensions")
+    source = ak.to_backend(
+        ak.Array(
+            ak.contents.RegularArray(
+                ak.contents.NumpyArray(np.arange(rows * width, dtype=np.int64)), width
+            )
+        ),
+        backend,
+    )
+    columns = ak.to_backend(ak.Array(np.array([0, -1], dtype=np.int64)), backend)
+    row_index = ak.to_backend(ak.Array(np.arange(rows, dtype=np.int64)), backend)
+    singleton = ak.to_backend(
+        ak.Array(
+            ak.contents.RegularArray(
+                ak.contents.NumpyArray(np.arange(rows, dtype=np.int64)), 1
+            )
+        ),
+        backend,
+    )
+    yield "regular_at", source, lambda x: x[:, -1]
+    yield "regular_range", source, lambda x: x[:, 1::2]
+    yield "regular_reverse", source, lambda x: x[:, ::-1]
+    yield "regular_advanced", source, lambda x: x[:, columns]
+    yield "regular_spread", source, lambda x: x[row_index, :]
+    yield "regular_broadcast", source, lambda x: ak.broadcast_arrays(x, singleton)[1]
+    yield (
+        "regular_broadcast_ragged",
+        source,
+        lambda x: ak.broadcast_arrays(ak.from_regular(x), singleton)[1],
+    )
+    yield "regular_bounds", source, lambda x: x[:, width]
+
+
+UNIONARRAY_CASES = ("union_flatten", "union_concatenate")
+
+
+def unionarray_cases(ak, rows, width, backend="cpu"):
+    if rows < 1 or width < 1:
+        raise ValueError("UnionArray fixtures require positive dimensions")
+    offsets = np.arange(rows + 1, dtype=np.int64) * width
+    values = ak.contents.NumpyArray(np.arange(rows * width, dtype=np.int64))
+    numbers = ak.contents.ListOffsetArray(ak.index.Index64(offsets), values)
+    records = ak.contents.ListOffsetArray(
+        ak.index.Index64(offsets.copy()), ak.contents.RecordArray([values], ["x"])
+    )
+    source = ak.to_backend(
+        ak.Array(
+            ak.contents.UnionArray(
+                ak.index.Index8((np.arange(rows) % 2).astype(np.int8)),
+                ak.index.Index64(np.arange(rows, dtype=np.int64)),
+                [numbers, records],
+            )
+        ),
+        backend,
+    )
+    yield "union_flatten", source, lambda x: ak.flatten(x, axis=1)
+    yield "union_concatenate", source, lambda x: ak.concatenate([x, x], axis=1)
+
+
 def case_names(suite, rows, width):
     if suite == "listarray":
         return LISTARRAY_CASES
+    if suite == "indexed":
+        return INDEXED_CASES
+    if suite == "regulararray":
+        return REGULARARRAY_CASES
+    if suite == "unionarray":
+        return UNIONARRAY_CASES
     return ("to_regular", "drop_none") + (
         ("to_regular_irregular",) if rows >= 2 and width >= 1 else ()
     )
@@ -122,6 +251,12 @@ def expectation(ak, call):
         # Keep a stable semantic fragment, excluding backend-specific context.
         if isinstance(error, IndexError) and "index out of range" in str(error):
             return {"error": "index out of range", "error_type": "IndexError"}
+        if (
+            isinstance(error, ValueError)
+            and "index out of range" in str(error)
+            and "compiled code" in str(error)
+        ):
+            return {"error": "index out of range", "error_type": "ValueError"}
         if "not regular" not in str(error):
             raise
         return {"error": "not regular"}
@@ -142,7 +277,15 @@ def validate_errors(errors, expected):
                 # ValueError. Preserve the phase and require its CUDA marker;
                 # an unrelated ValueError must not pass as an indexing error.
                 return isinstance(error, IndexError) or (
-                    stage == "finish"
+                    (
+                        stage == "finish"
+                        or (
+                            stage == "call"
+                            and message.startswith(
+                                "index out of range in compiled CUDA code (awkward_RegularArray_getitem_next_at)"
+                            )
+                        )
+                    )
                     and isinstance(error, ValueError)
                     and "index out of range in compiled CUDA code (awkward_" in message
                 )
@@ -208,17 +351,19 @@ def run(args):
     stream = cp.cuda.Stream(non_blocking=True)
     with stream:
         for rows, width in SHAPES:
-            factory = (
-                listarray_cases if report["settings"]["suite"] == "listarray" else cases
-            )
+            suite = report["settings"]["suite"]
+            factory = {
+                "listarray": listarray_cases,
+                "indexed": indexed_cases,
+                "regulararray": regulararray_cases,
+                "unionarray": unionarray_cases,
+            }.get(suite, cases)
             device_cases = (
                 {
                     name: (source, operation)
-                    for name, source, operation in listarray_cases(
-                        ak, rows, width, "cuda"
-                    )
+                    for name, source, operation in factory(ak, rows, width, "cuda")
                 }
-                if report["settings"]["suite"] == "listarray"
+                if suite in ("listarray", "indexed", "regulararray", "unionarray")
                 else {}
             )
             for name, host, operation in factory(ak, rows, width):
@@ -421,7 +566,15 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     worker = sub.add_parser("run")
     worker.add_argument(
-        "--suite", choices=("listoffsetarray", "listarray"), default="listoffsetarray"
+        "--suite",
+        choices=(
+            "listoffsetarray",
+            "listarray",
+            "indexed",
+            "regulararray",
+            "unionarray",
+        ),
+        default="listoffsetarray",
     )
     worker.add_argument("--checkout", required=True)
     worker.add_argument("--output", required=True)

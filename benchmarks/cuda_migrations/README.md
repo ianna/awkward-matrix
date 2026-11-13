@@ -443,3 +443,232 @@ python "$BENCH_ROOT/awkward-matrix/benchmarks/prepare_cuda.py" "$BENCH_ROOT/$var
 This refreshes generated artifacts; it does not build C++ or change package
 versions. Use a fresh Python process after regeneration if CUDA initialization
 has already been attempted.
+
+### Completed public IndexedArray simplification
+
+Run the public harness with `--suite indexed`, or on Della:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-public.sbatch indexed
+```
+
+This uses the existing `baseline` and `indexed` checkouts and their wheels. Run
+jobs sequentially because the launcher installs into the shared environment.
+The launcher regenerates signatures before each checkout import.
+Results are written to `results/JOBID/public-indexed/`.
+
+Eight cases per shape select a record field (`array["x"]`) that composes an
+outer indexed/option node with an inner indexed/option field. All four node
+combinations have valid and out-of-bounds variants. The row count is the outer
+index length; width is the inner index length. Option cases include negative
+outer indices and missing inner entries. A record separates the indirections
+because layouts prohibit directly nesting indexed nodes. The public field
+selection, rather than fixture construction, invokes `awkward_IndexedArray_simplify`.
+Host dispatch tests verify that each case reaches that kernel once.
+
+Source layouts and backend transfers, plus CPU reference values/error
+expectations, are prepared before timing. Each measured sample includes public
+field selection, result wrapping, stream completion and deferred-error draining.
+JIT warmup is excluded. Output validation and error classification are outside
+timing. Invalid-index cases retain whether the error occurs during the call or
+completion. A missing/wrong error is a parity failure, never a successful timing.
+These are completed public-operation measurements, not pure device times and
+not a replacement for the isolated kernel/Nsight comparison or its review gate.
+
+### IndexedArray large-path stage diagnostics
+
+After updating `awkward-matrix`, submit from `CUDA_BENCH`:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-indexed-stages.sbatch
+```
+
+This uses the `indexed` checkout/wheel and measures 4096 outer indices and 8
+inner entries by default. Optional `--rows` (must exceed 64), `--width`, warmup,
+iteration, repeat and profile counts are forwarded to the Python diagnostic.
+Results are in `results/JOBID/indexed-stages/indexed-stages.{md,json}`, with
+separate per-stage `.txt`/`.pstats` profiles. Use sequential jobs because the
+launcher modifies the shared Conda environment.
+
+The actual prepared implementation supplies validation, first-error reduction
+and gather/attempt packing. Separate stages measure reduction workspace sizing,
+pooled scratch allocation/release, metadata rebinding/clearing and the 16-byte
+status `get().tolist()`. Valid and out-of-range inputs are first compared with
+compiled CPU results, including output capacity after the first error. JIT
+warmup is excluded, cProfile runs separately, and stage order rotates by repeat.
+
+Each stage is fenced independently. The status-copy stage starts after prior
+work is complete; it does not include waiting for an entire validation/gather
+pipeline. Do not sum stage completion times to estimate public latency. Kernel
+stages use preallocated scratch, and binding preparation is outside their
+measurement. CUDA-event intervals include submission gaps. Backend dispatch and
+error-context capture are excluded; compare with the kernel/public harnesses
+before attributing any remaining difference. These are diagnostics, not pure
+GPU execution times or an end-to-end speedup claim.
+
+### Experimental validation/reduction fusion
+
+`indexed_fusion.py` compares the prepared production simplify path against a
+benchmark-only prototype. Production dispatch is unchanged. The prototype
+reduces row numbers from a CountingIterator with a stateful binary operation:
+`g(i)` is `i` for an invalid outer index and the length sentinel otherwise;
+`f(a, b) = min(g(a), g(b))`. On that domain `g` is idempotent, so the operation
+is associative and commutative. Negative outer indices remain valid missing
+entries. The result feeds the existing guarded parallel gather/attempt packing.
+No TransformIterator is used: this avoids reintroducing the iterator path that
+previously failed on the supported CCCL/Numba combination. Stateful reduction
+operators still require real GPU compilation/execution validation.
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-indexed-fusion.sbatch
+```
+
+Results are in `results/JOBID/indexed-fusion/indexed-fusion.{md,json}`. The run
+compares valid inputs and errors at the first/middle/last row. Both implementations
+include their actual allocations, rebinding, reduction/gather, status transfer
+and stream completion. JIT warmup, resets, references and parity checks are
+outside timing, with variant order alternating by repeat. Full output buffers
+(including the untouched suffix on errors) and error row/attempt are checked.
+Compilation or launch failure checkpoints the failure and aborts the worker;
+no production fallback or silent performance claim is made. The candidate
+check-out must contain the prepared `_indexedarray` helper.
+
+The fused design removes the chunk-results array and separate validation
+transform, but it evaluates index validity inside the reduction and may repeat
+reads or lose optimized built-in MIN reduction performance. One algorithm call
+can itself launch multiple device kernels. Only GPU measurement can establish
+whether this is faster. These are prepared-call diagnostics, not public-operation
+benchmarks; backend dispatch/error-context capture are excluded.
+
+After fusion is integrated into the candidate, the stage diagnostic reports
+`validation_and_reduction` and no standalone validation/chunk buffer. Its
+allocation stage follows the two-buffer status/workspace path. The historical
+prototype-comparison script rejects an already-fused production checkout;
+use `712d13f0b` in a separate checkout for that historical comparison. Use the
+completed `--suite indexed` public benchmark to evaluate the integrated revision.
+
+### Paired public IndexedArray diagnostics
+
+To investigate the remaining indexed→option overhead without changing reduction
+code, run the two valid field projections on the same large shape:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-public-indexed-diagnostics.sbatch
+```
+
+The job sequentially installs `baseline` and `indexed` in the shared environment;
+do not run it alongside another job that installs into that environment. Results
+are in `results/JOB/public-indexed-diagnostics/comparison.md` (and JSON). Both
+projections are checked against CPU results outside profiling. JIT warmup is
+excluded. Untimed traces record actual kernel dispatch and available
+`ErrorContext.frozen_primary`/`cuda_primary` calls, including parent relationships.
+Separate cProfile passes show exclusive host time for call-only and completed
+boundaries. Paired tables compare indexed→option minus indexed→indexed within
+each revision, and the change in that gap. Context, dispatch and get/tolist status
+functions are included even outside the largest increases. Full profiles and
+trace events are retained; `.get` profiling does not identify transfer bytes or
+separate device waiting from Python overhead. Diagnostic durations are perturbed
+and must not be used as benchmark latencies. Production kernels are unchanged.
+
+### Completed RegularArray slicing and broadcasting
+
+Run `della-public.sbatch regulararray` to compare the historical baseline with
+`CUDA_BENCH/regulararray`. Eight operations at each of the three standard shapes
+cover scalar, strided, reversed, advanced and spread slicing; regular and mixed
+ragged broadcasting; and an out-of-bounds scalar slice. Fixtures explicitly use
+RegularArray. CPU reference values, device inputs and JIT warmup are outside
+timing. Completed latency includes result construction and deferred-error
+draining. Broadcasting may use array-library operations rather than a dedicated
+RegularArray kernel; this suite measures public workflows, not isolated kernels.
+
+For untimed RegularArray advanced/spread dispatch traces and separate host
+profiles, submit `della-public-regulararray-diagnostics.sbatch`. Default shape is
+4096:8. Results are in `results/JOB/public-regulararray-diagnostics/comparison.md`
+with full JSON events and call-only/completed cProfile files alongside. Available
+CUDA context capture methods are traced explicitly. Profile `.get`/`.item` rows
+include waiting and do not measure transfer bytes; nested trace durations overlap.
+Keep these diagnostics separate from the unprofiled public benchmark above.
+The bounds classifier accepts the known immediate CUDA ValueError wrapper for
+RegularArray scalar indexing, while rejecting unrelated ValueErrors.
+
+### Completed UnionArray operations
+
+Submit `della-public.sbatch unionarray` to compare baseline and the
+`CUDA_BENCH/unionarray` checkout. Public `ak.flatten(axis=1)` and
+`ak.concatenate(axis=1)` run at all three standard shapes (six cases).
+Explicit unions of numeric lists and record lists preserve heterogeneous
+contents; CPU tests verify values/order and dispatch to all three migrated
+families: flatten_length, flatten_combine and nestedfill_tags_index. Input/device
+construction, reference checks and JIT warmup are excluded; result construction,
+completion and deferred-error draining are included. These valid-input public
+cases supplement canonical kernel edge/error tests rather than replace them.
+
+### UnionArray flatten diagnostics
+
+Submit `della-public-unionarray-diagnostics.sbatch` for the default
+`union_flatten:4096:8` investigation. Results are in
+`results/JOB/public-unionarray-diagnostics/`. Untimed trace events retain actual
+kernel invocations (including flatten_length/flatten_combine), nesting, argument
+metadata and available context-capture calls. Separate call-only/completed host
+profiles expose array uploads, allocations and `.get`/`.item` transfer/wait paths.
+These profiles cannot determine transfer bytes or pure GPU execution time; use
+the separate Nsight kernel harness for those. Warmup and CPU comparisons are
+outside profiling, and production kernels are unchanged. Do not run alongside
+other jobs installing into the shared environment.
+
+For the remaining short-list concatenation overhead, submit
+`della-public-unionarray-concatenate-diagnostics.sbatch`. It selects only
+`union_concatenate:4096:8` and records actual dispatch multiplicity, nested context
+capture and separate call-only/completed host profiles. Inspect
+`results/JOB/public-unionarray-concatenate-diagnostics/comparison.md`; full events
+and profiles are retained alongside it. No production algorithm is changed.
+
+### Complete UnionArray review run
+
+`della-unionarray-final.sbatch` runs all three isolated kernel families (nine
+shape cases), canonical parity, Nsight traces and the six completed public
+operations, sequentially for baseline and the current unionarray checkout.
+Pointer-table pointees and device addresses are constructed outside measurement;
+their ownership is retained, and resets restore pointees without copying host
+addresses onto the device. Parity compares pointee contents rather than addresses.
+Reports are at `results/JOB/unionarray-final/{kernels,public}/comparison.md`.
+Both reports are written before the kernel gate controls job exit status.
+Requires the existing environment, wheels and Nsight installation. Avoid concurrent
+jobs installing into the shared environment. Run artifacts, not host simulation,
+are needed to establish CUDA parity and the final performance gate.
+
+### ListArray review validation
+
+`della-listarray-review.sbatch` rebuilds the current `listarray/awkward-cpp`
+(including the padding bounds fix), runs CPU/host callbacks, GPU contracts and
+both explicit generated CUDA test variants, then measures baseline and candidate
+sequentially. Existing baseline wheels are reused; candidate CPU wheels are not.
+The candidate wheel is built before profiling with compilers resolved from the
+compute node's PATH and a fresh job-specific CMake build directory. Compiler
+versions, `cpu-build.log` and the wheel are retained in the results directory;
+an old `build/cpython-*` cache cannot select an unavailable compiler.
+It also runs `listarray_review.py`: 40 distinct jagged shapes followed by the
+first shape again expose shape-dependent setup/JIT churn, and warmed
+`next_array` cases include four rows with 1,048,576 indices. First-use timings
+include setup/JIT and may use disk compiler caches; they are separate from the
+warmed medians. Input construction, output comparisons and warmup are excluded
+from warmed measurements. Runtime scalar uploads are included.
+After each warmed `next_array` measurement, a separate diagnostic call counts
+CCCL stateful-operator compilations. The JSON records the operator names and
+the Markdown report shows the counts; the fixed prepared path should report
+zero. Instrumentation is restored afterward and never runs inside timing
+samples. First-use compilation when switching between the small and parallel
+jagged paths remains visible in the varying-shape rows.
+
+Submit from `CUDA_BENCH` after updating the candidate and this repository:
+
+```bash
+sbatch --export=NONE awkward-matrix/benchmarks/cuda_migrations/della-listarray-review.sbatch
+```
+
+Reports are under `results/JOB/listarray-review/`: `review.md`,
+`kernels/comparison.md`, `public/comparison.md`, environment/commit records and
+JUnit files. The old baseline's known jagged bounds error mismatch remains
+visible in the public report; inspect candidate parity separately. A successful
+batch exit alone does not mean the performance review gate passed. Avoid other
+jobs installing into the shared Conda environment while this job runs.

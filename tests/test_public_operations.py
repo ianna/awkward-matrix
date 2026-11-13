@@ -161,7 +161,9 @@ def test_public_fixtures_match_independent_cpu_expectations(rows, width):
     np.testing.assert_array_equal(index[::3], -1)
 
 
-@pytest.mark.parametrize("suite", ["listoffsetarray", "listarray"])
+@pytest.mark.parametrize(
+    "suite", ["listoffsetarray", "listarray", "indexed", "regulararray", "unionarray"]
+)
 def test_worker_warmup_is_excluded_and_complete_reports_compare(
     tmp_path, monkeypatch, suite
 ):
@@ -196,12 +198,16 @@ def test_worker_warmup_is_excluded_and_complete_reports_compare(
             )
         ),
     )
-    monkeypatch.setattr(ak, "to_backend", lambda source, backend: source)
+    monkeypatch.setattr(ak, "to_backend", lambda source, backend, **kwargs: source)
     monkeypatch.setattr(
         public, "finish_stream", lambda cuda, stream: calls.append("finish")
     )
     monkeypatch.setattr(
-        public, "SHAPES", [(2, 3)] if suite == "listarray" else [(2, 3), (0, 8), (3, 0)]
+        public,
+        "SHAPES",
+        [(2, 3)]
+        if suite in ("listarray", "indexed", "regulararray", "unionarray")
+        else [(2, 3), (0, 8), (3, 0)],
     )
     env = {field: "same" for field in public.ENVIRONMENT_FIELDS}
     env["git_sha"] = "revision"
@@ -218,7 +224,9 @@ def test_worker_warmup_is_excluded_and_complete_reports_compare(
         )
     )
     report = json.loads(output.read_text())
-    count = 5 if suite == "listarray" else 7
+    count = {"listarray": 5, "indexed": 8, "regulararray": 8, "unionarray": 2}.get(
+        suite, 7
+    )
     assert len(report["measurements"]) == count
     assert len(calls) == count * (1 + 2 * 2 + 2 * 2)
     for case in report["measurements"]:
@@ -352,7 +360,7 @@ def test_missing_cuda_bounds_error_is_recorded_not_accepted(tmp_path, monkeypatc
             )
         ),
     )
-    monkeypatch.setattr(ak, "to_backend", lambda source, backend: source)
+    monkeypatch.setattr(ak, "to_backend", lambda source, backend, **kwargs: source)
     monkeypatch.setattr(public, "finish_stream", lambda *args: None)
     monkeypatch.setattr(public, "SHAPES", [(2, 3)])
     env = {field: "same" for field in public.ENVIRONMENT_FIELDS}
@@ -393,3 +401,138 @@ def test_missing_cuda_bounds_error_is_recorded_not_accepted(tmp_path, monkeypatc
         )
     )
     assert "PARITY FAILED" in (tmp_path / "comparison.md").read_text()
+
+
+@pytest.mark.parametrize("rows,width", [(3, 4), (32, 8), (65, 3)])
+def test_indexed_public_fields_compose_indices(monkeypatch, rows, width):
+    ak = pytest.importorskip("awkward")
+    from awkward._backends.numpy import NumpyBackend
+
+    seen = []
+    original = NumpyBackend.__getitem__
+
+    def lookup(self, key):
+        seen.append(key[0])
+        return original(self, key)
+
+    monkeypatch.setattr(NumpyBackend, "__getitem__", lookup)
+    inventory = []
+    for name, source, operation in public.indexed_cases(ak, rows, width):
+        inventory.append(name)
+        seen.clear()
+        result = public.expectation(ak, lambda: operation(source))
+        assert seen.count("awkward_IndexedArray_simplify") == 1
+        if name.endswith("_bounds"):
+            assert result == {"error": "index out of range", "error_type": "ValueError"}
+            public.validate_errors(
+                [
+                    (
+                        "finish",
+                        ValueError(
+                            "index out of range in compiled CUDA code (awkward_IndexedArray_simplify)"
+                        ),
+                    )
+                ],
+                result,
+            )
+        else:
+            expected = []
+            _, outer, inner = name.split("_")
+            for row in range(rows):
+                index = row % width
+                expected.append(
+                    None
+                    if (outer == "option" and row % 5 == 0)
+                    or (inner == "option" and index % 3 == 0)
+                    else width - 1 - index
+                )
+            assert result == {"values": expected, "error": None}
+    assert tuple(inventory) == public.case_names("indexed", rows, width)
+
+
+@pytest.mark.parametrize("rows,width", [(0, 8), (3, 0)])
+def test_indexed_fixtures_reject_empty_dimensions(rows, width):
+    ak = pytest.importorskip("awkward")
+    with pytest.raises(ValueError, match="positive"):
+        list(public.indexed_cases(ak, rows, width))
+
+
+@pytest.mark.parametrize("rows,width", [(3, 4), (32, 8), (1, 1)])
+def test_regulararray_public_operations(monkeypatch, rows, width):
+    ak = pytest.importorskip("awkward")
+    from awkward._backends.numpy import NumpyBackend
+
+    seen = set()
+    original = NumpyBackend.__getitem__
+
+    def lookup(self, key):
+        seen.add(key[0])
+        return original(self, key)
+
+    monkeypatch.setattr(NumpyBackend, "__getitem__", lookup)
+    values = np.arange(rows * width).reshape(rows, width)
+    reference = {
+        "regular_at": values[:, -1].tolist(),
+        "regular_range": values[:, 1::2].tolist(),
+        "regular_reverse": values[:, ::-1].tolist(),
+        "regular_advanced": values[:, [0, -1]].tolist(),
+        "regular_spread": values.tolist(),
+        "regular_broadcast": np.broadcast_to(
+            np.arange(rows)[:, None], (rows, width)
+        ).tolist(),
+    }
+    reference["regular_broadcast_ragged"] = reference["regular_broadcast"]
+    inventory = []
+    for name, source, op in public.regulararray_cases(ak, rows, width):
+        inventory.append(name)
+        assert source.layout.is_regular
+        expected = public.expectation(ak, lambda: op(source))
+        if name == "regular_bounds":
+            assert expected["error"] == "index out of range"
+        else:
+            assert expected == {"values": reference[name], "error": None}
+    assert tuple(inventory) == public.case_names("regulararray", rows, width)
+    assert "awkward_RegularArray_getitem_next_range" in seen
+
+
+def test_immediate_regulararray_at_bounds_wrapper():
+    expected = {"error": "index out of range", "error_type": "IndexError"}
+    error = ValueError(
+        "index out of range in compiled CUDA code (awkward_RegularArray_getitem_next_at)"
+    )
+    public.validate_errors([("call", error)], expected)
+    for wrong in (ValueError("index out of range"), RuntimeError(str(error))):
+        with pytest.raises(AssertionError):
+            public.validate_errors([("call", wrong)], expected)
+
+
+@pytest.mark.parametrize("rows,width", [(3, 4), (32, 8)])
+def test_unionarray_public_dispatch(monkeypatch, rows, width):
+    ak = pytest.importorskip("awkward")
+    from awkward._backends.numpy import NumpyBackend
+
+    seen = set()
+    original = NumpyBackend.__getitem__
+
+    def lookup(self, key):
+        seen.add(key[0])
+        return original(self, key)
+
+    monkeypatch.setattr(NumpyBackend, "__getitem__", lookup)
+    inventory = []
+    for name, source, op in public.unionarray_cases(ak, rows, width):
+        inventory.append(name)
+        assert source.layout.is_union
+        values = ak.to_list(source)
+        expected = (
+            [v for row in values for v in row]
+            if name == "union_flatten"
+            else [row + row for row in values]
+        )
+        assert ak.to_list(op(source)) == expected
+    assert tuple(inventory) == public.case_names("unionarray", rows, width)
+    assert {
+        "awkward_UnionArray_flatten_length",
+        "awkward_UnionArray_flatten_combine",
+        "awkward_UnionArray_nestedfill_tags_index",
+    } <= seen
