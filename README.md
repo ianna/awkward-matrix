@@ -42,6 +42,12 @@ imports generated fixtures, measures completed public operations, and supports
 kernel/family/operation/layout/dtype selectors. Missing implementations and
 coverage gaps remain explicit.
 
+## High-level release coverage
+
+The [high-level API suite](benchmarks/highlevel/README.md) inventories the
+public API of an installed Awkward release, checks that each entry has a
+benchmark workload, and can save a JSON report with smoke-test results.
+
 ## Tests
 
 ```bash
