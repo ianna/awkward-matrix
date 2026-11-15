@@ -61,3 +61,18 @@ def test_saved_baseline_can_be_overridden():
     data["default_baseline"] = "2.15.0"
     assert build_comparison(data)["baseline"] == "2.15.0"
     assert build_comparison(data, "2.9.0")["baseline"] == "2.9.0"
+
+
+def test_main_compares_to_a_release_and_links_to_its_commit():
+    from benchmarks.highlevel.report import release_url, render_html
+
+    data = run(result([20], 100), result([10], 250))
+    head = data["releases"][0]
+    head.update(awkward="main", source_commit="b" * 40)
+    comparison = build_comparison(data)
+    assert comparison["baseline"] == "2.9.0"
+    assert comparison["rows"][0]["time_change_pct"] == -50
+    url = release_url("main", head["source_commit"])
+    assert f'href="{url}">main</a>' in render_html(
+        data, comparison, "measurements.json"
+    )

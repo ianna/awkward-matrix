@@ -171,7 +171,12 @@ def measure_case(python, name, size, args):
 
 
 def compatibility_key(env):
-    return {k: v for k, v in env.items() if k not in {"awkward", "awkward_cpp", "apis"}}
+    return {
+        k: v
+        for k, v in env.items()
+        if k
+        not in {"awkward", "awkward_cpp", "awkward_version", "source_commit", "apis"}
+    }
 
 
 def measure(args):
@@ -179,6 +184,11 @@ def measure(args):
     for python, env in zip(args.python, envs):
         if env.get("status") == "failed":
             raise ValueError(f"{python}: {env['detail']}")
+    if main_commit := getattr(args, "main_commit", None):
+        head = envs[-1]
+        head.update(
+            awkward_version=head["awkward"], awkward="main", source_commit=main_commit
+        )
     versions = [env["awkward"] for env in envs]
     if len(set(versions)) != len(versions):
         raise ValueError("Provide one interpreter per distinct Awkward release")
@@ -205,6 +215,9 @@ def measure(args):
         },
         "releases": [{**env, "results": []} for env in envs],
     }
+
+    if baseline := getattr(args, "baseline", None):
+        report["default_baseline"] = baseline
 
     def save():
         temporary = args.output.with_name(args.output.name + ".tmp")

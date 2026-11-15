@@ -58,3 +58,35 @@ def test_cli_uses_three_fixture_sizes_by_default(monkeypatch, tmp_path):
     assert measure.main(arguments) == 0
     assert measure.main([*arguments, "--size", "128"]) == 0
     assert sizes == [[32, 1024, 32768], [128]]
+
+
+def test_main_keeps_its_identity_when_package_version_matches(monkeypatch, tmp_path):
+    import json
+
+    environment = {"awkward": "2.15.0", "awkward_cpp": "58", "apis": ["ak.sum"]}
+    monkeypatch.setattr(measure, "invoke", lambda *args, **kwargs: environment.copy())
+    monkeypatch.setattr(
+        measure,
+        "measure_case",
+        lambda python, name, size, _: {"api": name, "size": size, "status": "measured"},
+    )
+    output = tmp_path / "measurements.json"
+    args = SimpleNamespace(
+        python=["release-python", "main-python"],
+        main_commit="a" * 40,
+        baseline=None,
+        case=["ak.sum"],
+        size=[32],
+        warmups=1,
+        repeats=1,
+        memory_repeats=1,
+        timeout=5,
+        output=output,
+    )
+    assert measure.measure(args) == 0
+    report = json.loads(output.read_text())
+    release, main = report["releases"]
+    assert release["awkward"] == main["awkward_version"] == "2.15.0"
+    assert main["awkward"] == "main"
+    assert main["source_commit"] == "a" * 40
+    assert report["matching_environments"]

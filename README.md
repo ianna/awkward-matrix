@@ -19,12 +19,11 @@ Open the [Marimo notebook](benchmarks/highlevel/notebook.py) to compare runtime
 and peak RSS across ten Awkward releases. The saved run includes small (32),
 medium (1,024), and large (32,768) fixture sizes.
 
-To run the notebook locally, use Python 3.10 or later from the repository root.
+To run the notebook locally, install [Pixi](https://pixi.sh) and run this
+command from the repository root.
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install "marimo==0.25.2" "plotly==7.1.0"
-.venv/bin/python -m marimo run benchmarks/highlevel/notebook.py
+pixi run --locked -e notebook notebook
 ```
 
 Open the local URL printed by Marimo. The notebook loads the saved measurements
@@ -37,6 +36,20 @@ Browse the [saved HTML comparison](results/highlevel/2.6.0-2.15.0/comparison.htm
 or [download the measurement JSON](results/highlevel/2.6.0-2.15.0/measurements.json).
 The [benchmark instructions](benchmarks/highlevel/README.md) explain the coverage
 checks, measurement method, and how to reproduce a run.
+
+## Run release benchmarks on demand
+
+In GitHub Actions, select **High-level Awkward benchmarks** and choose **Run
+workflow**. The default compares Awkward 2.15.0 with the current upstream
+`main` commit using five representative cases at all three fixture sizes.
+Choose **full** for the complete API inventory. Download the workflow artifact
+for the raw JSON and HTML report, then open the JSON in the notebook.
+The [saved quick comparison](results/highlevel/main-quick/comparison.html)
+shows an example of Awkward 2.15.0 against a recorded upstream commit.
+
+Run the same comparison locally with `pixi run --locked benchmark --output
+results/highlevel/new-run`. See the [benchmark instructions](benchmarks/highlevel/README.md)
+for release selection and how the upstream commit is built and recorded.
 
 ## CUDA migration validation
 

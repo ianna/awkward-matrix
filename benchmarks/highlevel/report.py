@@ -32,6 +32,17 @@ STATUS_LABELS = {
 }
 
 
+def release_url(version, commit=None):
+    upstream = "https://github.com/scikit-hep/awkward"
+    if version == "main":
+        return (
+            f"{upstream}/commit/{quote(commit, safe='')}"
+            if commit
+            else f"{upstream}/commits/main"
+        )
+    return f"{upstream}/releases/tag/v{quote(version, safe='')}"
+
+
 def summarize(row):
     timing = row.get("timing", {})
     times = timing.get("samples_ns", [])
@@ -77,7 +88,9 @@ def build_comparison(run, baseline=None):
     if baseline is None:
         try:
             baseline = min(
-                versions, key=lambda version: tuple(map(int, version.split(".")))
+                (version for version in versions if version != "main"),
+                key=lambda version: tuple(map(int, version.split("."))),
+                default="main",
             )
         except ValueError as error:
             raise ValueError(
@@ -156,12 +169,16 @@ def number(value, divisor):
 
 def render_html(run, comparison, raw_link):
     baseline = escape(comparison["baseline"])
+    source_commits = {
+        release["awkward"]: release.get("source_commit") for release in run["releases"]
+    }
     coverage_rows = []
     for release, counts in comparison["coverage"].items():
         cells = [f"<td>{counts[status]}</td>" for status in STATUS_LABELS]
         matches = comparison["environments_match_baseline"][release]
+        link = escape(release_url(release, source_commits[release]))
         coverage_rows.append(
-            f'<tr><th scope="row">{escape(release)}</th>'
+            f'<tr><th scope="row"><a href="{link}">{escape(release)}</a></th>'
             f"<td>{'Yes' if matches else 'No'}</td>{''.join(cells)}</tr>"
         )
 

@@ -1,0 +1,22 @@
+[workspace]
+name = "awkward-matrix"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[dependencies]
+python = "3.12.*"
+uv = "0.11.*"
+
+[tasks]
+benchmark = "python -m benchmarks.highlevel.run"
+report = "python -m benchmarks.highlevel.report"
+
+[feature.notebook.pypi-dependencies]
+marimo = "==0.25.2"
+plotly = "==7.1.0"
+
+[feature.notebook.tasks]
+notebook = "python -m marimo run benchmarks/highlevel/notebook.py --"
+
+[environments]
+notebook = ["notebook"]

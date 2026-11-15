@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Awkward release comparison</title>
+<style>
+body { font: 1rem/1.5 system-ui, sans-serif; margin: 2rem auto; padding: 0 1rem;
+       max-width: 90rem; color: #1b2634; background: #fff; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: .45rem .65rem; text-align: left; border-bottom: 1px solid #dce3ea; }
+thead { background: #edf2f7; }
+tbody tr:nth-child(even) { background: #f7f9fb; }
+pre { white-space: pre-wrap; min-width: 15rem; }
+</style>
+</head>
+<body>
+<h1>Awkward release comparison</h1>
+<p>Baseline <strong>2.15.0</strong>. <a href="measurements.json">Raw measurement JSON</a></p>
+<h2>Coverage</h2>
+<div class="scroll"><table>
+<thead><tr><th>Release</th><th>Environment matches baseline</th><th>Measured</th><th>Partial</th><th>Unavailable</th><th>Absent</th><th>Failed</th><th>Missing case</th><th>No result</th></tr></thead>
+<tbody><tr><th scope="row"><a href="https://github.com/scikit-hep/awkward/releases/tag/v2.15.0">2.15.0</a></th><td>Yes</td><td>15</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><th scope="row"><a href="https://github.com/scikit-hep/awkward/commit/ba8ff569ff54dd2a45a5fa6c32a59431cdb78787">main</a></th><td>Yes</td><td>15</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div>
+<h2>Measurements</h2>
+<p>Changes are relative to the same workload and size in the baseline.
+Positive changes mean higher time or RSS. The time range shows the observed
+minimum and maximum. Percentages require matching environments, and RSS
+percentages also require matching measurement methods and a nonzero baseline.</p>
+<p>RSS delta is the increase above the setup baseline. For process high-water
+measurements, zero means the operation did not exceed the setup high-water mark.
+Memory sample counts show successful trials out of attempted trials.</p>
+<div class="scroll"><table><thead><tr>
+<th>API</th><th>Fixture size</th><th>Release</th><th>Status</th>
+<th>Median time (µs)</th><th>Time range (µs)</th><th>Time samples</th><th>Time change</th>
+<th>Median RSS delta (KiB)</th><th>RSS samples</th><th>RSS change</th>
+</tr></thead><tbody><tr><th scope="row">ak.Array</th><td>Small (32 rows)</td><td>2.15.0</td><td>Measured</td><td>34.792</td><td>32.416–46.125</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">144.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.Array</th><td>Small (32 rows)</td><td>main</td><td>Measured</td><td>32.958</td><td>32.292–43.000</td><td>7</td><td>-5.27%</td><td><span title="process_high_water_delta">128.000</span></td><td>1/1</td><td>-11.11%</td></tr><tr><th scope="row">ak.Array</th><td>Medium (1,024 rows)</td><td>2.15.0</td><td>Measured</td><td>162.625</td><td>147.917–185.667</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">160.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.Array</th><td>Medium (1,024 rows)</td><td>main</td><td>Measured</td><td>176.084</td><td>169.166–208.958</td><td>7</td><td>+8.28%</td><td><span title="process_high_water_delta">176.000</span></td><td>1/1</td><td>+10.00%</td></tr><tr><th scope="row">ak.Array</th><td>Large (32,768 rows)</td><td>2.15.0</td><td>Measured</td><td>4,255.375</td><td>4,018.167–4,293.208</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">2,656.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.Array</th><td>Large (32,768 rows)</td><td>main</td><td>Measured</td><td>4,885.625</td><td>4,738.750–5,109.166</td><td>7</td><td>+14.81%</td><td><span title="process_high_water_delta">2,288.000</span></td><td>1/1</td><td>-13.86%</td></tr><tr><th scope="row">ak.flatten</th><td>Small (32 rows)</td><td>2.15.0</td><td>Measured</td><td>11.708</td><td>10.750–15.250</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">0.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.flatten</th><td>Small (32 rows)</td><td>main</td><td>Measured</td><td>12.500</td><td>10.916–15.667</td><td>7</td><td>+6.76%</td><td><span title="process_high_water_delta">0.000</span></td><td>1/1</td><td><span title="Baseline is zero">—</span></td></tr><tr><th scope="row">ak.flatten</th><td>Medium (1,024 rows)</td><td>2.15.0</td><td>Measured</td><td>13.542</td><td>12.584–17.709</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">0.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.flatten</th><td>Medium (1,024 rows)</td><td>main</td><td>Measured</td><td>12.542</td><td>11.333–14.666</td><td>7</td><td>-7.38%</td><td><span title="process_high_water_delta">0.000</span></td><td>1/1</td><td><span title="Baseline is zero">—</span></td></tr><tr><th scope="row">ak.flatten</th><td>Large (32,768 rows)</td><td>2.15.0</td><td>Measured</td><td>16.750</td><td>15.542–19.292</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">0.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.flatten</th><td>Large (32,768 rows)</td><td>main</td><td>Measured</td><td>16.125</td><td>15.166–19.500</td><td>7</td><td>-3.73%</td><td><span title="process_high_water_delta">0.000</span></td><td>1/1</td><td><span title="Baseline is zero">—</span></td></tr><tr><th scope="row">ak.str.length</th><td>Small (32 rows)</td><td>2.15.0</td><td>Measured</td><td>54.500</td><td>46.167–61.250</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">8,128.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.str.length</th><td>Small (32 rows)</td><td>main</td><td>Measured</td><td>50.500</td><td>43.292–56.458</td><td>7</td><td>-7.34%</td><td><span title="process_high_water_delta">8,144.000</span></td><td>1/1</td><td>+0.20%</td></tr><tr><th scope="row">ak.str.length</th><td>Medium (1,024 rows)</td><td>2.15.0</td><td>Measured</td><td>37.708</td><td>32.666–41.708</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">8,128.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.str.length</th><td>Medium (1,024 rows)</td><td>main</td><td>Measured</td><td>40.208</td><td>35.791–46.625</td><td>7</td><td>+6.63%</td><td><span title="process_high_water_delta">8,144.000</span></td><td>1/1</td><td>+0.20%</td></tr><tr><th scope="row">ak.str.length</th><td>Large (32,768 rows)</td><td>2.15.0</td><td>Measured</td><td>109.125</td><td>103.667–119.334</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">8,608.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.str.length</th><td>Large (32,768 rows)</td><td>main</td><td>Measured</td><td>105.791</td><td>99.458–139.000</td><td>7</td><td>-3.06%</td><td><span title="process_high_water_delta">8,688.000</span></td><td>1/1</td><td>+0.93%</td></tr><tr><th scope="row">ak.sum</th><td>Small (32 rows)</td><td>2.15.0</td><td>Measured</td><td>33.250</td><td>28.167–39.500</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">48.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.sum</th><td>Small (32 rows)</td><td>main</td><td>Measured</td><td>37.750</td><td>32.458–46.458</td><td>7</td><td>+13.53%</td><td><span title="process_high_water_delta">48.000</span></td><td>1/1</td><td>+0.00%</td></tr><tr><th scope="row">ak.sum</th><td>Medium (1,024 rows)</td><td>2.15.0</td><td>Measured</td><td>34.041</td><td>31.125–428.833</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">48.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.sum</th><td>Medium (1,024 rows)</td><td>main</td><td>Measured</td><td>32.625</td><td>30.125–487.500</td><td>7</td><td>-4.16%</td><td><span title="process_high_water_delta">48.000</span></td><td>1/1</td><td>+0.00%</td></tr><tr><th scope="row">ak.sum</th><td>Large (32,768 rows)</td><td>2.15.0</td><td>Measured</td><td>82.291</td><td>72.875–88.291</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">64.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.sum</th><td>Large (32,768 rows)</td><td>main</td><td>Measured</td><td>87.542</td><td>79.625–102.667</td><td>7</td><td>+6.38%</td><td><span title="process_high_water_delta">304.000</span></td><td>1/1</td><td>+375.00%</td></tr><tr><th scope="row">ak.to_list</th><td>Small (32 rows)</td><td>2.15.0</td><td>Measured</td><td>27.000</td><td>25.000–38.333</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">32.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.to_list</th><td>Small (32 rows)</td><td>main</td><td>Measured</td><td>26.792</td><td>25.750–33.667</td><td>7</td><td>-0.77%</td><td><span title="process_high_water_delta">32.000</span></td><td>1/1</td><td>+0.00%</td></tr><tr><th scope="row">ak.to_list</th><td>Medium (1,024 rows)</td><td>2.15.0</td><td>Measured</td><td>178.917</td><td>174.542–194.333</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">304.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.to_list</th><td>Medium (1,024 rows)</td><td>main</td><td>Measured</td><td>171.167</td><td>161.625–178.709</td><td>7</td><td>-4.33%</td><td><span title="process_high_water_delta">336.000</span></td><td>1/1</td><td>+10.53%</td></tr><tr><th scope="row">ak.to_list</th><td>Large (32,768 rows)</td><td>2.15.0</td><td>Measured</td><td>6,048.583</td><td>5,834.542–13,736.541</td><td>7</td><td>Baseline</td><td><span title="process_high_water_delta">8,448.000</span></td><td>1/1</td><td>Baseline</td></tr><tr><th scope="row">ak.to_list</th><td>Large (32,768 rows)</td><td>main</td><td>Measured</td><td>6,252.083</td><td>5,738.750–12,797.875</td><td>7</td><td>+3.36%</td><td><span title="process_high_water_delta">8,480.000</span></td><td>1/1</td><td>+0.38%</td></tr></tbody></table></div>
+<h2>Run metadata</h2>
+<details><summary>Settings and release environments</summary><pre>{
+  &quot;schema_version&quot;: 1,
+  &quot;settings&quot;: {
+    &quot;sizes&quot;: [
+      32,
+      1024,
+      32768
+    ],
+    &quot;warmups&quot;: 3,
+    &quot;repeats&quot;: 7,
+    &quot;memory_repeats&quot;: 1,
+    &quot;timeout_seconds&quot;: 120
+  },
+  &quot;releases&quot;: [
+    {
+      &quot;awkward&quot;: &quot;2.15.0&quot;,
+      &quot;awkward_cpp&quot;: &quot;58&quot;,
+      &quot;python&quot;: &quot;3.12.16&quot;,
+      &quot;implementation&quot;: &quot;CPython&quot;,
+      &quot;platform&quot;: &quot;macOS-15.7.3-arm64-arm-64bit&quot;,
+      &quot;machine&quot;: &quot;arm64&quot;,
+      &quot;threads&quot;: {
+        &quot;OMP_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;OPENBLAS_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;MKL_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;VECLIB_MAXIMUM_THREADS&quot;: &quot;1&quot;,
+        &quot;NUMEXPR_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;JAX_PLATFORMS&quot;: &quot;cpu&quot;,
+        &quot;CUDA_VISIBLE_DEVICES&quot;: &quot;&quot;,
+        &quot;PYTHONHASHSEED&quot;: &quot;0&quot;
+      },
+      &quot;packages&quot;: {
+        &quot;fastavro&quot;: &quot;1.13.1&quot;,
+        &quot;fsspec&quot;: &quot;2026.9.0&quot;,
+        &quot;numpy&quot;: &quot;1.26.4&quot;,
+        &quot;packaging&quot;: &quot;26.3&quot;,
+        &quot;pandas&quot;: &quot;2.3.3&quot;,
+        &quot;pyarrow&quot;: &quot;20.0.0&quot;,
+        &quot;python-dateutil&quot;: &quot;4.0.0&quot;,
+        &quot;pytz&quot;: &quot;2026.6&quot;,
+        &quot;safetensors&quot;: &quot;0.8.0&quot;,
+        &quot;tzdata&quot;: &quot;2026.6&quot;
+      }
+    },
+    {
+      &quot;awkward&quot;: &quot;main&quot;,
+      &quot;awkward_cpp&quot;: &quot;58&quot;,
+      &quot;python&quot;: &quot;3.12.16&quot;,
+      &quot;implementation&quot;: &quot;CPython&quot;,
+      &quot;platform&quot;: &quot;macOS-15.7.3-arm64-arm-64bit&quot;,
+      &quot;machine&quot;: &quot;arm64&quot;,
+      &quot;threads&quot;: {
+        &quot;OMP_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;OPENBLAS_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;MKL_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;VECLIB_MAXIMUM_THREADS&quot;: &quot;1&quot;,
+        &quot;NUMEXPR_NUM_THREADS&quot;: &quot;1&quot;,
+        &quot;JAX_PLATFORMS&quot;: &quot;cpu&quot;,
+        &quot;CUDA_VISIBLE_DEVICES&quot;: &quot;&quot;,
+        &quot;PYTHONHASHSEED&quot;: &quot;0&quot;
+      },
+      &quot;packages&quot;: {
+        &quot;fastavro&quot;: &quot;1.13.1&quot;,
+        &quot;fsspec&quot;: &quot;2026.9.0&quot;,
+        &quot;numpy&quot;: &quot;1.26.4&quot;,
+        &quot;packaging&quot;: &quot;26.3&quot;,
+        &quot;pandas&quot;: &quot;2.3.3&quot;,
+        &quot;pyarrow&quot;: &quot;20.0.0&quot;,
+        &quot;python-dateutil&quot;: &quot;4.0.0&quot;,
+        &quot;pytz&quot;: &quot;2026.6&quot;,
+        &quot;safetensors&quot;: &quot;0.8.0&quot;,
+        &quot;tzdata&quot;: &quot;2026.6&quot;
+      },
+      &quot;awkward_version&quot;: &quot;2.15.0&quot;,
+      &quot;source_commit&quot;: &quot;ba8ff569ff54dd2a45a5fa6c32a59431cdb78787&quot;
+    }
+  ]
+}</pre></details>
+</body></html>
