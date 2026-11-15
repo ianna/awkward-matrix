@@ -1,3 +1,7 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["marimo==0.25.2", "plotly==7.1.0"]
+# ///
 import marimo
 
 __generated_with = "0.25.2"
@@ -7,6 +11,7 @@ app = marimo.App(width="full", app_title="Awkward release comparison")
 @app.cell
 def _():
     import json
+    import sys
     from html import escape
     from pathlib import Path
     from urllib.parse import quote
@@ -14,6 +19,19 @@ def _():
     import marimo as mo
     import plotly.graph_objects as go
     from packaging.version import Version
+
+    # Molab may start the kernel inside the notebook directory.
+    _notebook_dir = mo.notebook_dir() or Path.cwd()
+    repository = next(
+        (
+            root
+            for root in (_notebook_dir, *_notebook_dir.parents, Path.cwd())
+            if (root / "benchmarks/highlevel/report.py").is_file()
+        ),
+        Path.cwd(),
+    )
+    if str(repository) not in sys.path:
+        sys.path.insert(0, str(repository))
 
     from benchmarks.highlevel.cases import fixture_size_label
     from benchmarks.highlevel.report import STATUS_LABELS, build_comparison
@@ -28,6 +46,7 @@ def _():
         json,
         mo,
         quote,
+        repository,
         fixture_size_label,
     )
 
@@ -51,10 +70,12 @@ def _(mo):
 
 
 @app.cell
-def _(Path, build_comparison, json, mo, upload):
-    _default = Path("results/highlevel/2.6.0-2.15.0/measurements.json")
+def _(Path, build_comparison, json, mo, repository, upload):
+    _default = repository / Path("results/highlevel/2.6.0-2.15.0/measurements.json")
     if not _default.is_file():
-        _default = Path("results/highlevel/2.14.0-2.15.0/measurements.json")
+        _default = repository / Path(
+            "results/highlevel/2.14.0-2.15.0/measurements.json"
+        )
     _path = Path(mo.cli_args().get("measurements", str(_default)))
     source_name = upload.name() if upload.value else str(_path)
     try:
