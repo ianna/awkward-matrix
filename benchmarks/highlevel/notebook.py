@@ -508,13 +508,17 @@ def _(json, mo, release_url, repository):
             [
                 "## Awkward release activity",
                 "",
-                "| Release notes | Merged PRs listed | New contributors listed |",
-                "| --- | ---: | ---: |",
+                "| Release notes | Merged PRs listed | New contributors listed | "
+                "Top 3 by lines changed | Top 3 by commits |",
+                "| --- | ---: | ---: | --- | --- |",
                 *_rows,
                 "",
                 "Counts come from the upstream GitHub release notes. Each listed merged "
                 "PR is counted once per release. New contributors are the people credited "
                 "for their first contribution in the notes. Zero means none were listed.",
+                "",
+                "Rankings sum additions plus deletions and commit counts across the "
+                "listed merged PRs, credited to the PR author. Bot accounts are excluded.",
             ]
         )
     )
