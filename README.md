@@ -13,11 +13,13 @@ results. Benchmark tooling alone does not establish a speedup or backend parity.
 
 ## Explore release benchmarks in Marimo
 
+[![Open in Marimo](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/ianna/awkward-matrix/blob/main/benchmarks/highlevel/notebook.py/wasm)
+
 Open the [Marimo notebook](benchmarks/highlevel/notebook.py) to compare runtime
 and peak RSS across ten Awkward releases. The saved run includes small (32),
 medium (1,024), and large (32,768) fixture sizes.
 
-From the repository root, use Python 3.10 or later to set up and launch the notebook.
+To run the notebook locally, use Python 3.10 or later from the repository root.
 
 ```bash
 python3 -m venv .venv
