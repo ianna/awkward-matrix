@@ -50,8 +50,25 @@ jobs:
           if [[ -n "$BASELINE" ]]; then args+=(--baseline "$BASELINE"); fi
           pixi run --locked benchmark "${args[@]}" 2>&1 | tee results/highlevel/ci/run.log
       - name: Upload results
+        id: results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: highlevel-awkward-${{ github.run_id }}-${{ github.run_attempt }}
           path: results/highlevel/ci/
+
+      - name: Publish benchmark summary
+        if: always()
+        env:
+          ARTIFACT_URL: ${{ steps.results.outputs.artifact-url }}
+        run: |
+          {
+            if [[ -f results/highlevel/ci/measurements.json ]]; then
+              pixi run --locked python -m benchmarks.highlevel.summary results/highlevel/ci/measurements.json
+            else
+              printf '## Awkward benchmark results\n\nNo measurements were saved. See the job log.\n'
+            fi
+            if [[ -n "$ARTIFACT_URL" ]]; then
+              printf '\n[Download the full results artifact](%s)\n' "$ARTIFACT_URL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
