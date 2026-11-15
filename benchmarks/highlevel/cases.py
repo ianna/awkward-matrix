@@ -11,6 +11,13 @@ from inspect import signature
 from pathlib import Path
 from typing import Callable
 
+FIXTURE_SIZES = {32: "Small", 1024: "Medium", 32768: "Large"}
+
+
+def fixture_size_label(size):
+    label = FIXTURE_SIZES.get(size)
+    return f"{label} ({size:,} rows)" if label else f"{size:,} rows"
+
 
 class Unavailable(RuntimeError):
     """A workload requires an optional package or runtime."""
@@ -86,7 +93,7 @@ class Fixtures:
 
     @cached_property
     def record(self):
-        return self.records[0]
+        return self.ak.Record({"x": self.ragged, "y": self.other})
 
     @cached_property
     def strings(self):
@@ -539,7 +546,7 @@ MEMBERS = {
         "begin_record": builder_method("begin_record"),
         "field": builder_method("field", "y", start=RECORD_STARTED),
         "end_record": builder_method("end_record", start=RECORD_STARTED),
-        "append": Case(lambda f, _: partial(f.ak.ArrayBuilder().append, f.rows[0])),
+        "append": Case(lambda f, _: partial(f.ak.ArrayBuilder().append, f.rows)),
         "extend": Case(lambda f, _: partial(f.ak.ArrayBuilder().extend, f.ragged)),
         "List": context("List"),
         "Tuple": context("Tuple", 2),
@@ -626,7 +633,7 @@ for name, fixture in (("Array", "records"), ("Record", "record")):
 
 CASES = {
     "ak.Array": call(lambda f: (f.rows,)),
-    "ak.Record": call(lambda f: ({"x": f.rows[0], "y": f.rows[-1]},)),
+    "ak.Record": call(lambda f: ({"x": f.rows, "y": f.rows},)),
     "ak.ArrayBuilder": call(lambda f: ()),
     **{f"ak.{name}": case for name, case in OPERATIONS.items()},
     **{f"ak.str.{name}": case for name, case in STRINGS.items()},

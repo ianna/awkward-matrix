@@ -7,15 +7,29 @@ app = marimo.App(width="full", app_title="Awkward release comparison")
 @app.cell
 def _():
     import json
+    from html import escape
     from pathlib import Path
+    from urllib.parse import quote
 
     import marimo as mo
     import plotly.graph_objects as go
     from packaging.version import Version
 
+    from benchmarks.highlevel.cases import fixture_size_label
     from benchmarks.highlevel.report import STATUS_LABELS, build_comparison
 
-    return Path, STATUS_LABELS, Version, build_comparison, go, json, mo
+    return (
+        Path,
+        STATUS_LABELS,
+        Version,
+        build_comparison,
+        escape,
+        go,
+        json,
+        mo,
+        quote,
+        fixture_size_label,
+    )
 
 
 @app.cell
@@ -35,8 +49,10 @@ def _(mo):
 
 @app.cell
 def _(Path, build_comparison, json, mo, upload):
-    _default = "results/highlevel/2.14.0-2.15.0/measurements.json"
-    _path = Path(mo.cli_args().get("measurements", _default))
+    _default = Path("results/highlevel/2.6.0-2.15.0/measurements.json")
+    if not _default.is_file():
+        _default = Path("results/highlevel/2.14.0-2.15.0/measurements.json")
+    _path = Path(mo.cli_args().get("measurements", str(_default)))
     source_name = upload.name() if upload.value else str(_path)
     try:
         run = json.loads(upload.contents() if upload.value else _path.read_bytes())
@@ -79,7 +95,7 @@ def _(baseline, build_comparison, run):
 
 
 @app.cell
-def _(baseline, initial, mo, versions):
+def _(baseline, initial, mo, fixture_size_label, versions):
     _candidates = [version for version in versions if version != baseline.value]
     _sizes = sorted({row["size"] for row in initial["rows"]})
     candidate = mo.ui.dropdown(
@@ -88,9 +104,9 @@ def _(baseline, initial, mo, versions):
         label="Compare release",
     )
     summary_size = mo.ui.dropdown(
-        {f"{size:,}": size for size in _sizes},
-        value=f"{_sizes[0]:,}",
-        label="Fixture rows",
+        {fixture_size_label(size): size for size in _sizes},
+        value=fixture_size_label(1024 if 1024 in _sizes else _sizes[0]),
+        label="Fixture size",
     )
     metric = mo.ui.dropdown(
         {"Runtime": "time", "Peak RSS": "rss"}, value="Runtime", label="Metric"
@@ -115,18 +131,90 @@ def _(baseline, initial, mo, versions):
 
 
 @app.cell
-def _(candidate, comparison, direction, metric, mo, summary_size, threshold):
-    _field = f"{metric.value}_change_pct"
-    _rows = [
-        row
-        for row in comparison["rows"]
-        if row["release"] == candidate.value
-        and row["size"] == summary_size.value
-        and row[_field] is not None
+def _():
+    def group_changes(comparison, release, size, metric, cutoff):
+        field = f"{metric}_change_pct"
+        rows = [
+            row
+            for row in comparison["rows"]
+            if row["release"] == release
+            and row["size"] == size
+            and row[field] is not None
+        ]
+        improved = [row for row in rows if row[field] < 0 and -row[field] >= cutoff]
+        degraded = [row for row in rows if row[field] > 0 and row[field] >= cutoff]
+        return rows, improved, degraded
+
+    return (group_changes,)
+
+
+@app.cell
+def _(build_comparison, run, versions):
+    consecutive = [
+        (previous, current, build_comparison(run, previous))
+        for previous, current in zip(versions, versions[1:])
     ]
-    _cutoff = threshold.value or 0
-    _improved = [row for row in _rows if row[_field] < 0 and -row[_field] >= _cutoff]
-    _degraded = [row for row in _rows if row[_field] > 0 and row[_field] >= _cutoff]
+    return (consecutive,)
+
+
+@app.cell
+def _(consecutive, group_changes, metric, mo, summary_size, threshold):
+    _summary = []
+    for _previous, _current, _comparison in consecutive:
+        _rows, _improved, _degraded = group_changes(
+            _comparison,
+            _current,
+            summary_size.value,
+            metric.value,
+            threshold.value or 0,
+        )
+        _compatible = _comparison["environments_match_baseline"][_current]
+        _summary.append(
+            {
+                "From": _previous,
+                "To": _current,
+                "Improved": len(_improved) if _rows else None,
+                "Degraded": len(_degraded) if _rows else None,
+                "Below cutoff or unchanged": len(_rows)
+                - len(_improved)
+                - len(_degraded)
+                if _rows
+                else None,
+                "Comparable": len(_rows),
+                "Status": "Comparable"
+                if _rows
+                else "No comparable measurements"
+                if _compatible
+                else "Different environments",
+            }
+        )
+    mo.vstack(
+        [
+            mo.md("### Release by release"),
+            mo.md(
+                "Each row compares a release with the previous release in this run. "
+                "The metric, fixture size, and cutoff above apply to every pair."
+            ),
+            mo.ui.table(_summary, selection=None, page_size=8)
+            if _summary
+            else mo.md("Load at least two releases to compare them."),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(
+    candidate, comparison, direction, group_changes, metric, mo, summary_size, threshold
+):
+    _field = f"{metric.value}_change_pct"
+    _rows, _improved, _degraded = group_changes(
+        comparison,
+        candidate.value,
+        summary_size.value,
+        metric.value,
+        threshold.value or 0,
+    )
     _show_improved = direction.value == "Improved"
     _ranked = sorted(
         _improved if _show_improved else _degraded,
@@ -143,29 +231,39 @@ def _(candidate, comparison, direction, metric, mo, summary_size, threshold):
     mo.vstack(
         [
             mo.md(
+                f"### {comparison['baseline']} → {candidate.value or 'No comparison release'}\n\n"
                 f"**{len(_improved)} improved · {len(_degraded)} degraded** "
                 f"across {len(_rows)} comparable workloads. "
                 "Select a row to inspect its plots. The cutoff filters observed "
                 "changes and does not test statistical significance."
             ),
-            ranking if _ranked else mo.md("No functions match this selection."),
+            mo.callout(
+                "The selected release and baseline use different environments. "
+                "Use the absolute plots to inspect these measurements.",
+                kind="warn",
+            )
+            if candidate.value
+            and not comparison["environments_match_baseline"][candidate.value]
+            else ranking
+            if _ranked
+            else mo.md("No functions match this selection."),
         ]
     )
     return (ranking,)
 
 
 @app.cell
-def _(initial, mo, operation, ranking, summary_size):
+def _(initial, mo, operation, ranking, fixture_size_label, summary_size):
     active_api = ranking.value[0]["Function"] if ranking.value else operation.value
     _sizes = sorted(
         {row["size"] for row in initial["rows"] if row["api"] == active_api}
     )
     sizes = mo.ui.multiselect(
-        {f"{size:,}": size for size in _sizes},
-        value=[f"{summary_size.value:,}"]
+        {fixture_size_label(size): size for size in _sizes},
+        value=[fixture_size_label(summary_size.value)]
         if ranking.value
-        else [f"{size:,}" for size in _sizes[:4]],
-        label="Rows to plot",
+        else [fixture_size_label(size) for size in _sizes[:4]],
+        label="Sizes to plot",
     )
     mo.vstack([mo.md(f"## {active_api}"), sizes])
     return active_api, sizes
@@ -185,7 +283,7 @@ def _(active_api, comparison, sizes, versions):
 
 
 @app.cell
-def _(go):
+def _(escape, fixture_size_label, go, quote):
     def make_plot(rows, versions, baseline, *, metric, relative):
         time = metric == "time"
         unit = "%" if relative else "µs" if time else "KiB"
@@ -226,7 +324,7 @@ def _(go):
             fig.add_scatter(
                 x=[row["release"] for row in series],
                 y=values,
-                name=f"{size:,} rows",
+                name=fixture_size_label(size),
                 mode="lines+markers",
                 connectgaps=False,
                 error_y=error,
@@ -236,6 +334,12 @@ def _(go):
             return None
         title = "Runtime" if time else "Peak RSS delta"
         axis = f"Change from baseline ({unit})" if relative else f"Median ({unit})"
+        release_notes = "https://github.com/scikit-hep/awkward/releases/tag"
+        release_links = [
+            f'<a href="{release_notes}/v{quote(version, safe="")}" target="_blank">'
+            f"<u>{escape(version)}</u></a>"
+            for version in versions
+        ]
         fig.update_layout(
             title=title,
             xaxis={
@@ -243,6 +347,10 @@ def _(go):
                 "type": "category",
                 "categoryorder": "array",
                 "categoryarray": versions,
+                "tickmode": "array",
+                "tickvals": versions,
+                "ticktext": release_links,
+                "automargin": True,
             },
             yaxis_title=axis,
             height=340,
@@ -277,6 +385,7 @@ def _(baseline, display_mode, make_plot, mo, selected, versions):
                 "No comparable RSS values for this selection.", kind="info"
             ),
             mo.md(
+                "Select a release label to open its release notes. "
                 "Runtime whiskers show the observed minimum and maximum. "
                 "A zero RSS delta can mean the operation stayed below the setup "
                 "high-water mark. Positive changes mean higher time or RSS."

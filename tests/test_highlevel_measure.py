@@ -37,3 +37,24 @@ def test_failed_memory_worker_preserves_timing(monkeypatch):
     assert row["status"] == "partial"
     assert row["timing"]["median_ns"] == 20
     assert row["memory"][0]["detail"] == "worker timeout"
+
+
+def test_cli_uses_three_fixture_sizes_by_default(monkeypatch, tmp_path):
+    sizes = []
+
+    def collect(args):
+        sizes.append(args.size)
+        return 0
+
+    monkeypatch.setattr(measure, "measure", collect)
+    arguments = [
+        "--python",
+        "one",
+        "--python",
+        "two",
+        "--output",
+        str(tmp_path / "out"),
+    ]
+    assert measure.main(arguments) == 0
+    assert measure.main([*arguments, "--size", "128"]) == 0
+    assert sizes == [[32, 1024, 32768], [128]]

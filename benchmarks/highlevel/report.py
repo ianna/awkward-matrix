@@ -11,6 +11,8 @@ from pathlib import Path
 from statistics import median
 from urllib.parse import quote
 
+from .cases import fixture_size_label
+
 ENVIRONMENT_FIELDS = (
     "python",
     "implementation",
@@ -70,6 +72,8 @@ def build_comparison(run, baseline=None):
     if not releases or len(releases) != len(run["releases"]):
         raise ValueError("Expected nonempty, distinct Awkward releases")
     versions = list(releases)
+    if baseline is None:
+        baseline = run.get("default_baseline")
     if baseline is None:
         try:
             baseline = min(
@@ -181,14 +185,18 @@ def render_html(run, comparison, raw_link):
         if row["release"] == comparison["baseline"]:
             time_change = rss_change = "Baseline"
         result_rows.append(
-            f'<tr><th scope="row">{escape(row["api"])}</th><td>{row["size"]}</td>'
+            f'<tr><th scope="row">{escape(row["api"])}</th><td>{fixture_size_label(row["size"])}</td>'
             f"<td>{escape(row['release'])}</td><td>{status}</td>"
             f"<td>{number(row['time_ns'], 1_000)}</td><td>{time_range}</td>"
             f"<td>{row['time_samples']}</td><td>{time_change}</td><td>{rss}</td>"
             f"<td>{row['rss_samples']}/{row['rss_trials']}</td><td>{rss_change}</td></tr>"
         )
 
-    metadata = {key: run.get(key) for key in ("schema_version", "settings")}
+    metadata = {
+        key: run.get(key)
+        for key in ("schema_version", "settings", "measurement_batches")
+        if key in run
+    }
     metadata["releases"] = [
         {key: value for key, value in release.items() if key not in {"apis", "results"}}
         for release in run["releases"]
@@ -228,7 +236,7 @@ percentages also require matching measurement methods and a nonzero baseline.</p
 measurements, zero means the operation did not exceed the setup high-water mark.
 Memory sample counts show successful trials out of attempted trials.</p>
 <div class="scroll"><table><thead><tr>
-<th>API</th><th>Rows</th><th>Release</th><th>Status</th>
+<th>API</th><th>Fixture size</th><th>Release</th><th>Status</th>
 <th>Median time (µs)</th><th>Time range (µs)</th><th>Time samples</th><th>Time change</th>
 <th>Median RSS delta (KiB)</th><th>RSS samples</th><th>RSS change</th>
 </tr></thead><tbody>{"".join(result_rows)}</tbody></table></div>

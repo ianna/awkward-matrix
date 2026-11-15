@@ -57,10 +57,22 @@ awkward-cpp versions are recorded separately.
 python -m benchmarks.highlevel.measure \
   --python /path/to/2.14.0/bin/python \
   --python /path/to/2.15.0/bin/python \
-  --size 1024 --output measurements.json
+  --output measurements.json
 ```
 
-Use repeated `--case` globs and `--size` values to select workloads. The runner
+Each case runs with three fixture sizes by default:
+
+| Size | Fixture rows |
+| --- | ---: |
+| Small | 32 |
+| Medium | 1,024 |
+| Large | 32,768 |
+
+Fixture row counts scale array inputs. Some public APIs have fixed-size inputs
+or no array argument, such as an empty builder constructor. These retain their
+natural workload at each size.
+
+Use repeated `--case` globs and `--size` values to override the defaults. The runner
 measures one child process at a time and rotates the first release for each
 case and size. Timing samples exclude fixture preparation and use three
 warmups and seven trials by default. The JSON retains the individual timings
@@ -84,7 +96,8 @@ case or measurement failure produces a nonzero exit status.
 python -m benchmarks.highlevel.report measurements.json --output comparison.html
 ```
 
-The oldest release is the default baseline. Use `--baseline 2.15.0` to compare
+The default baseline is the release recorded in the saved run, or the oldest
+release if the run does not specify one. Use `--baseline 2.15.0` to compare
 against a different release in the run. The HTML displays coverage, absolute
 values, observed timing ranges, sample counts, and comparable percentage changes.
 Keep the raw JSON with the HTML to preserve individual measurements and their
@@ -92,14 +105,14 @@ environment metadata.
 
 ## Explore a saved run in Marimo
 
-From the repository root, install the notebook dependencies in an environment
-separate from the benchmark environments.
+From the repository root, use Python 3.10 or later to install the notebook
+dependencies separately from the benchmark environments.
 
 ```bash
-python -m venv .venv
-.venv/bin/python -m pip install marimo plotly
+python3 -m venv .venv
+.venv/bin/python -m pip install "marimo==0.25.2" "plotly==7.1.0"
 .venv/bin/python -m marimo run benchmarks/highlevel/notebook.py -- \
-  --measurements results/highlevel/2.14.0-2.15.0/measurements.json
+  --measurements results/highlevel/2.6.0-2.15.0/measurements.json
 ```
 
 The notebook can also open a measurement JSON file through its file picker.
@@ -111,3 +124,14 @@ In **Improved and degraded functions**, choose a comparison release, fixture
 size, and metric, then switch between improved and degraded operations. The
 table ranks the largest changes first and defaults to a 5% minimum absolute
 change. Select a row to open that operation and fixture size in the plots.
+
+The saved comparison covers 2.6.0, the first release of each minor version from
+2.8 through 2.15, and 2.9.1 at all three fixture sizes. It uses 2.14.0 as the
+default baseline.
+Awkward 2.6.0 requires the NumPy 1.x environment used for its measurements.
+Its absolute values remain visible when compared with releases measured under
+NumPy 2.x. The report and notebook omit percentages across those environments.
+
+The **Release by release** table summarizes consecutive releases in the loaded
+run. Its counts use the selected metric, fixture size, and cutoff. Pairs with
+different environments show no improvement or degradation counts.

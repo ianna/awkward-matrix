@@ -19,7 +19,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import perf_counter_ns
 
-from .cases import CASES, Fixtures, Unavailable
+from .cases import CASES, FIXTURE_SIZES, Fixtures, Unavailable
 from .coverage import inventory
 
 THREAD_ENV = {
@@ -197,6 +197,7 @@ def measure(args):
         "schema_version": 1,
         "matching_environments": comparable,
         "settings": {
+            "sizes": args.size,
             "warmups": args.warmups,
             "repeats": args.repeats,
             "memory_repeats": args.memory_repeats,
@@ -259,7 +260,7 @@ def main(argv=None):
     parser.add_argument("--timeout", type=float, default=120)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
-    args.size = list(dict.fromkeys(args.size or [1024]))
+    args.size = list(dict.fromkeys(args.size or FIXTURE_SIZES))
     args.case = args.case or ["*"]
     if len(args.python) < 2:
         parser.error("provide at least two release interpreters")

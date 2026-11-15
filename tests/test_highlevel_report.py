@@ -54,3 +54,10 @@ def test_rss_comparison_requires_matching_methods_and_nonzero_baseline():
     assert zero["rss_change_reason"] == "Baseline is zero"
     assert mismatch["rss_change_reason"] == "RSS methods differ or are mixed"
     assert mismatch["time_change_pct"] == 100
+
+
+def test_saved_baseline_can_be_overridden():
+    data = run(result([10], 100), result([20], 100))
+    data["default_baseline"] = "2.15.0"
+    assert build_comparison(data)["baseline"] == "2.15.0"
+    assert build_comparison(data, "2.9.0")["baseline"] == "2.9.0"
