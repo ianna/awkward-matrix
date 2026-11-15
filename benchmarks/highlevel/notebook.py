@@ -480,5 +480,35 @@ def _(STATUS_LABELS, comparison, mo, selected):
     return
 
 
+@app.cell
+def _(json, mo, release_url, repository):
+    _activity = json.loads(
+        (repository / "benchmarks/highlevel/release_activity.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    _rows = [
+        f"| [{_version}]({release_url(_version)}) | "
+        f"{_counts['merged_prs_listed']} | {_counts['new_contributors_listed']} |"
+        for _version, _counts in _activity.items()
+    ]
+    mo.md(
+        "\n".join(
+            [
+                "## Awkward release activity",
+                "",
+                "| Release notes | Merged PRs listed | New contributors listed |",
+                "| --- | ---: | ---: |",
+                *_rows,
+                "",
+                "Counts come from the upstream GitHub release notes. Each listed merged "
+                "PR is counted once per release. New contributors are the people credited "
+                "for their first contribution in the notes. Zero means none were listed.",
+            ]
+        )
+    )
+    return
+
+
 if __name__ == "__main__":
     app.run()

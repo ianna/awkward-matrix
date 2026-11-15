@@ -1,0 +1,42 @@
+{
+  "2.6.0": {
+    "merged_prs_listed": 26,
+    "new_contributors_listed": 1
+  },
+  "2.8.0": {
+    "merged_prs_listed": 24,
+    "new_contributors_listed": 2
+  },
+  "2.9.0": {
+    "merged_prs_listed": 18,
+    "new_contributors_listed": 0
+  },
+  "2.9.1": {
+    "merged_prs_listed": 90,
+    "new_contributors_listed": 2
+  },
+  "2.10.0": {
+    "merged_prs_listed": 38,
+    "new_contributors_listed": 2
+  },
+  "2.11.0": {
+    "merged_prs_listed": 24,
+    "new_contributors_listed": 1
+  },
+  "2.12.0": {
+    "merged_prs_listed": 25,
+    "new_contributors_listed": 0
+  },
+  "2.13.0": {
+    "merged_prs_listed": 23,
+    "new_contributors_listed": 0
+  },
+  "2.14.0": {
+    "merged_prs_listed": 32,
+    "new_contributors_listed": 2
+  },
+  "2.15.0": {
+    "merged_prs_listed": 89,
+    "new_contributors_listed": 11
+  }
+}
