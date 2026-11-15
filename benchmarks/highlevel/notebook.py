@@ -36,6 +36,9 @@ def _():
 def _(mo):
     mo.md(r"""
     # Awkward release comparison
+
+    [awkward-matrix on GitHub](https://github.com/ianna/awkward-matrix)
+    · Created and maintained by Ianna Osborne, with AI assistance.
     """)
     return
 
