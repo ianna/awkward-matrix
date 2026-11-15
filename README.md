@@ -11,6 +11,31 @@ synchronization, data transfers, and temporary allocations. Reports should
 preserve the source revisions and environment information needed to reproduce
 results. Benchmark tooling alone does not establish a speedup or backend parity.
 
+## Explore release benchmarks in Marimo
+
+Open the [Marimo notebook](benchmarks/highlevel/notebook.py) to compare runtime
+and peak RSS across ten Awkward releases. The saved run includes small (32),
+medium (1,024), and large (32,768) fixture sizes.
+
+From the repository root, use Python 3.10 or later to set up and launch the notebook.
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install "marimo==0.25.2" "plotly==7.1.0"
+.venv/bin/python -m marimo run benchmarks/highlevel/notebook.py
+```
+
+Open the local URL printed by Marimo. The notebook loads the saved measurements
+automatically. Pick a fixture size and metric to see which functions improved
+or degraded between consecutive releases. Select a ranked function to see its
+plots, and click a release label on either plot to open its release notes.
+Use **Open measurement JSON** to explore another run.
+
+Browse the [saved HTML comparison](results/highlevel/2.6.0-2.15.0/comparison.html)
+or [download the measurement JSON](results/highlevel/2.6.0-2.15.0/measurements.json).
+The [benchmark instructions](benchmarks/highlevel/README.md) explain the coverage
+checks, measurement method, and how to reproduce a run.
+
 ## CUDA migration validation
 
 The initial harness compares eleven CUDA migration candidates between
@@ -41,12 +66,6 @@ cuda.compute implementations. It discovers the candidate's dispatch inventory,
 imports generated fixtures, measures completed public operations, and supports
 kernel/family/operation/layout/dtype selectors. Missing implementations and
 coverage gaps remain explicit.
-
-## High-level release coverage
-
-The [high-level API suite](benchmarks/highlevel/README.md) inventories the
-public API of an installed Awkward release, checks that each entry has a
-benchmark workload, and can save a JSON report with smoke-test results.
 
 ## Tests
 
