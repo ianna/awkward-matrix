@@ -43,8 +43,8 @@ In GitHub Actions, select **High-level Awkward benchmarks** and choose **Run
 workflow**. The default compares Awkward 2.15.0 with the current upstream
 `main` commit using five representative cases at all three fixture sizes.
 Choose **full** for the complete API inventory. The run’s **Summary** page
-shows coverage and the largest runtime and RSS changes. Download the linked
-artifact for the complete HTML report and the JSON to open in the notebook.
+shows coverage and changes both within and beyond ±5%. Download the linked
+artifact for the complete comparisons CSV, HTML report, and notebook-ready JSON.
 The [saved quick comparison](results/highlevel/main-quick/comparison.html)
 shows an example of Awkward 2.15.0 against a recorded upstream commit.
 

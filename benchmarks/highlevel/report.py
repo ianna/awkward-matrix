@@ -57,10 +57,13 @@ def summarize(row):
         "time_samples": len(times),
         "rss_bytes": median(deltas) if deltas else None,
         "rss_methods": methods,
+        "rss_range_bytes": (min(deltas), max(deltas)) if deltas else None,
         "rss_samples": len(deltas),
         "rss_trials": len(memory),
         "details": [
-            entry["detail"] for entry in [row, timing, *memory] if "detail" in entry
+            entry["detail"]
+            for entry in [row, timing, *timing.get("batches", []), *memory]
+            if "detail" in entry
         ],
     }
 
@@ -195,6 +198,10 @@ def render_html(run, comparison, raw_link):
                 f"<details><summary>{status}</summary><pre>{details}</pre></details>"
             )
         method = ", ".join(row["rss_methods"])
+        rss_range = "—"
+        if row["rss_range_bytes"] is not None:
+            low, high = row["rss_range_bytes"]
+            rss_range = f"{number(low, 1024)}–{number(high, 1024)}"
         rss = number(row["rss_bytes"], 1024)
         rss = f'<span title="{escape(method)}">{rss}</span>'
         time_change = change_html(row["time_change_pct"], row["time_change_reason"])
@@ -206,7 +213,7 @@ def render_html(run, comparison, raw_link):
             f"<td>{escape(row['release'])}</td><td>{status}</td>"
             f"<td>{number(row['time_ns'], 1_000)}</td><td>{time_range}</td>"
             f"<td>{row['time_samples']}</td><td>{time_change}</td><td>{rss}</td>"
-            f"<td>{row['rss_samples']}/{row['rss_trials']}</td><td>{rss_change}</td></tr>"
+            f"<td>{rss_range}</td><td>{row['rss_samples']}/{row['rss_trials']}</td><td>{rss_change}</td></tr>"
         )
 
     metadata = {
@@ -246,7 +253,7 @@ pre {{ white-space: pre-wrap; min-width: 15rem; }}
 <tbody>{"".join(coverage_rows)}</tbody></table></div>
 <h2>Measurements</h2>
 <p>Changes are relative to the same workload and size in the baseline.
-Positive changes mean higher time or RSS. The time range shows the observed
+Positive changes mean higher time or RSS. The ranges show the observed
 minimum and maximum. Percentages require matching environments, and RSS
 percentages also require matching measurement methods and a nonzero baseline.</p>
 <p>RSS delta is the increase above the setup baseline. For process high-water
@@ -255,7 +262,7 @@ Memory sample counts show successful trials out of attempted trials.</p>
 <div class="scroll"><table><thead><tr>
 <th>API</th><th>Fixture size</th><th>Release</th><th>Status</th>
 <th>Median time (µs)</th><th>Time range (µs)</th><th>Time samples</th><th>Time change</th>
-<th>Median RSS delta (KiB)</th><th>RSS samples</th><th>RSS change</th>
+<th>Median RSS delta (KiB)</th><th>RSS range (KiB)</th><th>RSS samples</th><th>RSS change</th>
 </tr></thead><tbody>{"".join(result_rows)}</tbody></table></div>
 <h2>Run metadata</h2>
 <details><summary>Settings and release environments</summary><pre>{details}</pre></details>

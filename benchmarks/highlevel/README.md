@@ -74,17 +74,18 @@ natural workload at each size.
 
 Use repeated `--case` globs and `--size` values to override the defaults. The runner
 measures one child process at a time and rotates the first release for each
-case and size. Timing samples exclude fixture preparation and use three
-warmups and seven trials by default. The JSON retains the individual timings
-and the median. CUDA cases appear as unavailable in this CPU runner.
+case and size. Timing uses three fresh processes per workload by default, each
+with three warmups and seven timed trials. The JSON retains the individual
+timings and their process groups. The reported time is the median of all 21
+trials. Use `--timing-batches` to change the process count. CUDA cases appear as unavailable in this CPU runner.
 
 Memory samples use a fresh process for each trial and include native allocations
 in process RSS. On Linux, when permitted, the runner resets the RSS high-water
-mark to current RSS after setup and subtracts that baseline from the operation's
-peak. Otherwise it reports the increase over the setup high-water mark. A zero
+mark to current RSS after setup and reads the kernel's `VmHWM` directly. Otherwise it reports the increase over the setup high-water mark. A zero
 in the latter mode means the operation did not exceed that mark. Compare memory
-samples only when their methods match. Use `--memory-repeats` to collect more
-than the default one trial per workload.
+samples only when their methods match. The report shows the median and observed
+range from five independent RSS trials. Use `--memory-repeats` to change the
+trial count.
 
 The runner updates the output after each workload across all releases. It
 preserves unavailable, absent, failed, and partially measured cases. A missing
@@ -159,5 +160,8 @@ runs the API inventory. Both use all three sizes by default.
 
 The **High-level Awkward benchmarks** workflow runs on request under GitHub
 Actions. It takes the same release list, baseline, profile, and main toggle.
-Download its artifact for the raw JSON, comparison HTML, and run log. CI and
+The Actions summary includes counts within ±5% and lists those rows when the
+table is compact. Download the artifact for all rows in `comparisons.csv`, the
+raw JSON, comparison HTML, and run log. The CSV includes absolute medians and
+observed ranges for each target. Percentages are observed changes. CI and
 local results are separate runs and can differ in hardware and RSS method.

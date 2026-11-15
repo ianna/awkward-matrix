@@ -69,18 +69,27 @@ def peak_rss():
     return peak * 1024 if sys.platform.startswith("linux") else peak
 
 
+def linux_peak_rss():
+    for line in Path("/proc/self/status").read_text(encoding="ascii").splitlines():
+        if line.startswith("VmHWM:"):
+            return int(line.split()[1]) * 1024
+    raise OSError("Linux /proc status has no VmHWM field")
+
+
 def memory_sample(run):
-    # On Linux, reset the kernel's RSS high-water mark to the current RSS.
+    read_peak = peak_rss
     method = "process_high_water_delta"
+    baseline = read_peak()
     if sys.platform.startswith("linux"):
         try:
             Path("/proc/self/clear_refs").write_text("5", encoding="ascii")
-            method = "reset_peak_minus_setup_rss"
+            baseline = linux_peak_rss()
+            read_peak = linux_peak_rss
+            method = "linux_vmhwm_delta"
         except OSError:
             pass
-    baseline = peak_rss()
     result = completed(run)
-    peak = peak_rss()
+    peak = read_peak()
     del result
     return {
         "baseline_bytes": baseline,
@@ -152,21 +161,45 @@ def invoke(python, *args, timeout):
 
 def measure_case(python, name, size, args):
     options = {"timeout": args.timeout}
-    timing = invoke(python, name, size, "timing", args.warmups, args.repeats, **options)
-    row = {"api": name, "size": size, "timing": timing}
-    if timing["status"] != "measured":
-        row["status"] = timing["status"]
-        return row
-    timing["median_ns"] = statistics.median(timing["samples_ns"])
-    memory = []
-    for _ in range(args.memory_repeats):
-        memory.append(invoke(python, name, size, "memory", 0, 1, **options))
-    row["memory"] = memory
-    row["status"] = (
+    timing_batches = []
+    for _ in range(args.timing_batches):
+        timing = invoke(
+            python, name, size, "timing", args.warmups, args.repeats, **options
+        )
+        timing_batches.append(timing)
+        if len(timing_batches) == 1 and timing["status"] != "measured":
+            return {
+                "api": name,
+                "size": size,
+                "status": timing["status"],
+                "timing": timing,
+            }
+
+    samples = [
+        value for batch in timing_batches for value in batch.get("samples_ns", [])
+    ]
+    timing = {
+        "status": "measured",
+        "samples_ns": samples,
+        "median_ns": statistics.median(samples),
+        "batches": timing_batches,
+    }
+    memory = [
+        invoke(python, name, size, "memory", 0, 1, **options)
+        for _ in range(args.memory_repeats)
+    ]
+    status = (
         "measured"
-        if all(sample["status"] == "measured" for sample in memory)
+        if all(sample["status"] == "measured" for sample in [*timing_batches, *memory])
         else "partial"
     )
+    row = {
+        "api": name,
+        "size": size,
+        "status": status,
+        "timing": timing,
+        "memory": memory,
+    }
     return row
 
 
@@ -210,6 +243,7 @@ def measure(args):
             "sizes": args.size,
             "warmups": args.warmups,
             "repeats": args.repeats,
+            "timing_batches": args.timing_batches,
             "memory_repeats": args.memory_repeats,
             "timeout_seconds": args.timeout,
         },
@@ -269,7 +303,8 @@ def main(argv=None):
     )
     parser.add_argument("--warmups", type=int, default=3)
     parser.add_argument("--repeats", type=int, default=7)
-    parser.add_argument("--memory-repeats", type=int, default=1)
+    parser.add_argument("--timing-batches", type=int, default=3)
+    parser.add_argument("--memory-repeats", type=int, default=5)
     parser.add_argument("--timeout", type=float, default=120)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -277,7 +312,16 @@ def main(argv=None):
     args.case = args.case or ["*"]
     if len(args.python) < 2:
         parser.error("provide at least two release interpreters")
-    if min(*args.size, args.repeats, args.memory_repeats, args.timeout) <= 0:
+    if (
+        min(
+            *args.size,
+            args.repeats,
+            args.timing_batches,
+            args.memory_repeats,
+            args.timeout,
+        )
+        <= 0
+    ):
         parser.error("size, repeats, memory repeats, and timeout must be positive")
     if args.warmups < 0:
         parser.error("warmups must be non-negative")

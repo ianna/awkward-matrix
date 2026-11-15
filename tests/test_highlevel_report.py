@@ -76,3 +76,18 @@ def test_main_compares_to_a_release_and_links_to_its_commit():
     assert f'href="{url}">main</a>' in render_html(
         data, comparison, "measurements.json"
     )
+
+
+def test_csv_includes_changes_at_and_within_five_percent():
+    import csv
+    from io import StringIO
+
+    from benchmarks.highlevel.summary import write_comparisons
+
+    data = run(result([100], 100), result([104], 105))
+    stream = StringIO()
+    write_comparisons(build_comparison(data), stream)
+    rows = list(csv.DictReader(StringIO(stream.getvalue())))
+    assert [row["change_pct"] for row in rows] == ["4.0", "5.0"]
+    assert all(row["classification"] == "Within ±5%" for row in rows)
+    assert rows[1]["release_max"] == str(105 / 1024)
