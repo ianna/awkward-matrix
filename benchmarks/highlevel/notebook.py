@@ -487,9 +487,20 @@ def _(json, mo, release_url, repository):
             encoding="utf-8"
         )
     )
+
+    def _ranking(entries):
+        return (
+            ", ".join(
+                f"[{entry['login']}](https://github.com/{entry['login']}) ({entry['count']:,})"
+                for entry in entries
+            )
+            or "—"
+        )
+
     _rows = [
         f"| [{_version}]({release_url(_version)}) | "
-        f"{_counts['merged_prs_listed']} | {_counts['new_contributors_listed']} |"
+        f"{_counts['merged_prs_listed']} | {_counts['new_contributors_listed']} | "
+        f"{_ranking(_counts['top_by_lines_changed'])} | {_ranking(_counts['top_by_commits'])} |"
         for _version, _counts in _activity.items()
     ]
     mo.md(
