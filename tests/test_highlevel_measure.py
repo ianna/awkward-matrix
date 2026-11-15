@@ -32,7 +32,9 @@ def test_failed_memory_worker_preserves_timing(monkeypatch):
         return {"status": "failed", "detail": "worker timeout"}
 
     monkeypatch.setattr(measure, "invoke", invoke)
-    args = SimpleNamespace(timeout=5, warmups=1, repeats=3, memory_repeats=1)
+    args = SimpleNamespace(
+        timeout=5, warmups=1, repeats=3, timing_batches=1, memory_repeats=1
+    )
     row = measure.measure_case("python", "ak.sum", 8, args)
     assert row["status"] == "partial"
     assert row["timing"]["median_ns"] == 20
@@ -79,6 +81,7 @@ def test_main_keeps_its_identity_when_package_version_matches(monkeypatch, tmp_p
         size=[32],
         warmups=1,
         repeats=1,
+        timing_batches=1,
         memory_repeats=1,
         timeout=5,
         output=output,
@@ -90,3 +93,25 @@ def test_main_keeps_its_identity_when_package_version_matches(monkeypatch, tmp_p
     assert main["awkward"] == "main"
     assert main["source_commit"] == "a" * 40
     assert report["matching_environments"]
+
+
+def test_measure_case_keeps_independent_batches(monkeypatch):
+    batches = iter([[10, 11], [100, 101], [12, 13]])
+    modes = []
+
+    def invoke(*args, **kwargs):
+        mode = args[3]
+        modes.append(mode)
+        if mode == "timing":
+            return {"status": "measured", "samples_ns": next(batches)}
+        return {"status": "measured", "sample": {"delta_bytes": 100}}
+
+    monkeypatch.setattr(measure, "invoke", invoke)
+    args = SimpleNamespace(
+        timeout=5, warmups=1, repeats=2, timing_batches=3, memory_repeats=5
+    )
+    row = measure.measure_case("python", "ak.sum", 32, args)
+    assert modes == ["timing"] * 3 + ["memory"] * 5
+    assert row["timing"]["median_ns"] == 12.5
+    assert len(row["timing"]["batches"]) == 3
+    assert len(row["memory"]) == 5

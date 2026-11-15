@@ -14,6 +14,7 @@ from tempfile import TemporaryDirectory
 from .cases import FIXTURE_SIZES
 from .measure import measure
 from .report import build_comparison, render_html
+from .summary import write_comparisons
 
 UPSTREAM = "https://github.com/scikit-hep/awkward.git"
 # NumPy 1.x also supports Awkward 2.6, which cannot import with NumPy 2.
@@ -70,7 +71,8 @@ def run(args):
     args.output.mkdir(parents=True, exist_ok=True)
     measurements = args.output / "measurements.json"
     report = args.output / "comparison.html"
-    if measurements.exists() or report.exists():
+    comparisons = args.output / "comparisons.csv"
+    if any(path.exists() for path in (measurements, report, comparisons)):
         raise ValueError("Choose a fresh output directory for this run")
 
     with TemporaryDirectory(prefix="awkward-matrix-run-") as temporary:
@@ -111,7 +113,7 @@ def run(args):
         args.output = measurements
         args.case = args.case or (QUICK_CASES if args.profile == "quick" else ["*"])
         args.size = list(dict.fromkeys(args.size or FIXTURE_SIZES))
-        args.warmups, args.repeats, args.memory_repeats, args.timeout = 3, 7, 1, 120
+        args.warmups, args.repeats, args.timeout = 3, 7, 120
         status = measure(args)
 
     data = json.loads(measurements.read_text(encoding="utf-8"))
@@ -119,7 +121,9 @@ def run(args):
     report.write_text(
         render_html(data, comparison, measurements.name), encoding="utf-8"
     )
-    print(f"Saved {measurements} and {report}", flush=True)
+    with comparisons.open("w", encoding="utf-8", newline="") as stream:
+        write_comparisons(comparison, stream)
+    print(f"Saved {measurements}, {report}, and {comparisons}", flush=True)
     return status
 
 
@@ -139,6 +143,8 @@ def main(argv=None):
     parser.add_argument(
         "--size", type=int, action="append", help="override fixture sizes"
     )
+    parser.add_argument("--timing-batches", type=int, default=3)
+    parser.add_argument("--memory-repeats", type=int, default=5)
     parser.add_argument("--output", type=Path, required=True, help="output directory")
     args = parser.parse_args(argv)
     targets = [*args.releases, *(["main"] if args.include_main else [])]
@@ -146,6 +152,8 @@ def main(argv=None):
         parser.error("select at least two targets")
     if args.baseline is not None and args.baseline not in targets:
         parser.error("the baseline must be a selected target")
+    if min(args.timing_batches, args.memory_repeats) < 1:
+        parser.error("trial counts must be positive")
     if args.size and min(args.size) < 1:
         parser.error("size must be positive")
     try:
