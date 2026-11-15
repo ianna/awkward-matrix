@@ -105,13 +105,11 @@ environment metadata.
 
 ## Explore a saved run in Marimo
 
-From the repository root, use Python 3.10 or later to install the notebook
-dependencies separately from the benchmark environments.
+From the repository root, use [Pixi](https://pixi.sh) to launch the notebook
+in an environment separate from the benchmark workers.
 
 ```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install "marimo==0.25.2" "plotly==7.1.0"
-.venv/bin/python -m marimo run benchmarks/highlevel/notebook.py -- \
+pixi run --locked -e notebook notebook \
   --measurements results/highlevel/2.6.0-2.15.0/measurements.json
 ```
 
@@ -135,3 +133,31 @@ NumPy 2.x. The report and notebook omit percentages across those environments.
 The **Release by release** table summarizes consecutive releases in the loaded
 run. Its counts use the selected metric, fixture size, and cutoff. Pairs with
 different environments show no improvement or degradation counts.
+
+
+## Run with Pixi or GitHub Actions
+
+The Pixi task prepares isolated Python environments for the selected releases
+and measures them sequentially on one machine. If selected, it clones
+`scikit-hep/awkward` at `main`, builds the Python and native packages from the
+same checkout, and records the exact commit in the results. Local source
+builds require Git and a C++ compiler. The default dependency set uses
+NumPy 1.26.4 to support Awkward 2.6.0 and records the resolved versions for
+each target. Cases that require other optional dependencies remain visible
+as unavailable.
+
+```bash
+pixi run --locked benchmark --releases 2.14.0,2.15.0 --profile full \
+  --output results/highlevel/new-run
+pixi run --locked -e notebook notebook \
+  --measurements results/highlevel/new-run/measurements.json
+```
+
+Use `--no-include-main` for a release-only run, or `--baseline` to specify
+the reference release. The quick profile uses five cases and the full profile
+runs the API inventory. Both use all three sizes by default.
+
+The **High-level Awkward benchmarks** workflow runs on request under GitHub
+Actions. It takes the same release list, baseline, profile, and main toggle.
+Download its artifact for the raw JSON, comparison HTML, and run log. CI and
+local results are separate runs and can differ in hardware and RSS method.

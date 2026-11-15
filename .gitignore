@@ -7,3 +7,5 @@ results/
 *.nsys-rep
 *.sqlite
 .venv/
+
+.pixi/

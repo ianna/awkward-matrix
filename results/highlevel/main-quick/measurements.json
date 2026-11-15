@@ -1,0 +1,1517 @@
+{
+  "schema_version": 1,
+  "matching_environments": true,
+  "settings": {
+    "sizes": [
+      32,
+      1024,
+      32768
+    ],
+    "warmups": 3,
+    "repeats": 7,
+    "memory_repeats": 1,
+    "timeout_seconds": 120
+  },
+  "releases": [
+    {
+      "awkward": "2.15.0",
+      "awkward_cpp": "58",
+      "python": "3.12.16",
+      "implementation": "CPython",
+      "platform": "macOS-15.7.3-arm64-arm-64bit",
+      "machine": "arm64",
+      "threads": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "JAX_PLATFORMS": "cpu",
+        "CUDA_VISIBLE_DEVICES": "",
+        "PYTHONHASHSEED": "0"
+      },
+      "packages": {
+        "fastavro": "1.13.1",
+        "fsspec": "2026.9.0",
+        "numpy": "1.26.4",
+        "packaging": "26.3",
+        "pandas": "2.3.3",
+        "pyarrow": "20.0.0",
+        "python-dateutil": "4.0.0",
+        "pytz": "2026.6",
+        "safetensors": "0.8.0",
+        "tzdata": "2026.6"
+      },
+      "apis": [
+        "ak.Array",
+        "ak.Array.Mask",
+        "ak.Array.__array__",
+        "ak.Array.__array_function__",
+        "ak.Array.__array_ufunc__",
+        "ak.Array.__arrow_array__",
+        "ak.Array.__cast_cpp__",
+        "ak.Array.__delitem__",
+        "ak.Array.__dir__",
+        "ak.Array.__getattr__",
+        "ak.Array.__getitem__",
+        "ak.Array.__iter__",
+        "ak.Array.__len__",
+        "ak.Array.__setattr__",
+        "ak.Array.__setitem__",
+        "ak.Array.attrs",
+        "ak.Array.behavior",
+        "ak.Array.cpp_type",
+        "ak.Array.fields",
+        "ak.Array.is_tuple",
+        "ak.Array.layout",
+        "ak.Array.mask",
+        "ak.Array.named_axis",
+        "ak.Array.nbytes",
+        "ak.Array.ndim",
+        "ak.Array.numba_type",
+        "ak.Array.positional_axis",
+        "ak.Array.show",
+        "ak.Array.to_list",
+        "ak.Array.to_numpy",
+        "ak.Array.tolist",
+        "ak.Array.type",
+        "ak.Array.typestr",
+        "ak.ArrayBuilder",
+        "ak.ArrayBuilder.List",
+        "ak.ArrayBuilder.Record",
+        "ak.ArrayBuilder.Tuple",
+        "ak.ArrayBuilder.__array__",
+        "ak.ArrayBuilder.__arrow_array__",
+        "ak.ArrayBuilder.__len__",
+        "ak.ArrayBuilder.append",
+        "ak.ArrayBuilder.attrs",
+        "ak.ArrayBuilder.begin_list",
+        "ak.ArrayBuilder.begin_record",
+        "ak.ArrayBuilder.begin_tuple",
+        "ak.ArrayBuilder.behavior",
+        "ak.ArrayBuilder.boolean",
+        "ak.ArrayBuilder.bytestring",
+        "ak.ArrayBuilder.complex",
+        "ak.ArrayBuilder.datetime",
+        "ak.ArrayBuilder.end_list",
+        "ak.ArrayBuilder.end_record",
+        "ak.ArrayBuilder.end_tuple",
+        "ak.ArrayBuilder.extend",
+        "ak.ArrayBuilder.field",
+        "ak.ArrayBuilder.index",
+        "ak.ArrayBuilder.integer",
+        "ak.ArrayBuilder.list",
+        "ak.ArrayBuilder.null",
+        "ak.ArrayBuilder.numba_type",
+        "ak.ArrayBuilder.real",
+        "ak.ArrayBuilder.record",
+        "ak.ArrayBuilder.show",
+        "ak.ArrayBuilder.snapshot",
+        "ak.ArrayBuilder.string",
+        "ak.ArrayBuilder.timedelta",
+        "ak.ArrayBuilder.to_list",
+        "ak.ArrayBuilder.to_numpy",
+        "ak.ArrayBuilder.tolist",
+        "ak.ArrayBuilder.tuple",
+        "ak.ArrayBuilder.type",
+        "ak.ArrayBuilder.typestr",
+        "ak.Record",
+        "ak.Record.__array_ufunc__",
+        "ak.Record.__delitem__",
+        "ak.Record.__dir__",
+        "ak.Record.__getattr__",
+        "ak.Record.__getitem__",
+        "ak.Record.__setattr__",
+        "ak.Record.__setitem__",
+        "ak.Record.attrs",
+        "ak.Record.behavior",
+        "ak.Record.fields",
+        "ak.Record.is_tuple",
+        "ak.Record.layout",
+        "ak.Record.named_axis",
+        "ak.Record.nbytes",
+        "ak.Record.numba_type",
+        "ak.Record.positional_axis",
+        "ak.Record.show",
+        "ak.Record.to_list",
+        "ak.Record.tolist",
+        "ak.Record.type",
+        "ak.Record.typestr",
+        "ak.all",
+        "ak.almost_equal",
+        "ak.angle",
+        "ak.any",
+        "ak.argcartesian",
+        "ak.argcombinations",
+        "ak.argmax",
+        "ak.argmin",
+        "ak.argsort",
+        "ak.array_equal",
+        "ak.backend",
+        "ak.broadcast_arrays",
+        "ak.broadcast_fields",
+        "ak.cartesian",
+        "ak.categories",
+        "ak.combinations",
+        "ak.concatenate",
+        "ak.copy",
+        "ak.corr",
+        "ak.count",
+        "ak.count_nonzero",
+        "ak.covar",
+        "ak.drop_none",
+        "ak.enforce_type",
+        "ak.fields",
+        "ak.fill_none",
+        "ak.firsts",
+        "ak.flatten",
+        "ak.from_arrow",
+        "ak.from_arrow_schema",
+        "ak.from_avro_file",
+        "ak.from_buffers",
+        "ak.from_categorical",
+        "ak.from_cudf",
+        "ak.from_cupy",
+        "ak.from_dlpack",
+        "ak.from_feather",
+        "ak.from_iter",
+        "ak.from_jax",
+        "ak.from_json",
+        "ak.from_numpy",
+        "ak.from_parquet",
+        "ak.from_raggedtensor",
+        "ak.from_rdataframe",
+        "ak.from_regular",
+        "ak.from_safetensors",
+        "ak.from_tensorflow",
+        "ak.from_torch",
+        "ak.full_like",
+        "ak.imag",
+        "ak.is_categorical",
+        "ak.is_none",
+        "ak.is_tuple",
+        "ak.is_valid",
+        "ak.isclose",
+        "ak.linear_fit",
+        "ak.local_index",
+        "ak.mask",
+        "ak.materialize",
+        "ak.max",
+        "ak.mean",
+        "ak.merge_option_of_records",
+        "ak.merge_union_of_records",
+        "ak.metadata_from_parquet",
+        "ak.min",
+        "ak.mixin_class",
+        "ak.mixin_class_method",
+        "ak.moment",
+        "ak.nan_to_none",
+        "ak.nan_to_num",
+        "ak.nanargmax",
+        "ak.nanargmin",
+        "ak.nanmax",
+        "ak.nanmean",
+        "ak.nanmin",
+        "ak.nanprod",
+        "ak.nanstd",
+        "ak.nansum",
+        "ak.nanvar",
+        "ak.num",
+        "ak.ones_like",
+        "ak.pad_none",
+        "ak.parameters",
+        "ak.prod",
+        "ak.ptp",
+        "ak.ravel",
+        "ak.real",
+        "ak.round",
+        "ak.run_lengths",
+        "ak.singletons",
+        "ak.softmax",
+        "ak.sort",
+        "ak.std",
+        "ak.str.capitalize",
+        "ak.str.center",
+        "ak.str.count_substring",
+        "ak.str.count_substring_regex",
+        "ak.str.ends_with",
+        "ak.str.extract_regex",
+        "ak.str.find_substring",
+        "ak.str.find_substring_regex",
+        "ak.str.index_in",
+        "ak.str.is_alnum",
+        "ak.str.is_alpha",
+        "ak.str.is_ascii",
+        "ak.str.is_decimal",
+        "ak.str.is_digit",
+        "ak.str.is_in",
+        "ak.str.is_lower",
+        "ak.str.is_numeric",
+        "ak.str.is_printable",
+        "ak.str.is_space",
+        "ak.str.is_title",
+        "ak.str.is_upper",
+        "ak.str.join",
+        "ak.str.join_element_wise",
+        "ak.str.length",
+        "ak.str.lower",
+        "ak.str.lpad",
+        "ak.str.ltrim",
+        "ak.str.ltrim_whitespace",
+        "ak.str.match_like",
+        "ak.str.match_substring",
+        "ak.str.match_substring_regex",
+        "ak.str.repeat",
+        "ak.str.replace_slice",
+        "ak.str.replace_substring",
+        "ak.str.replace_substring_regex",
+        "ak.str.reverse",
+        "ak.str.rpad",
+        "ak.str.rtrim",
+        "ak.str.rtrim_whitespace",
+        "ak.str.slice",
+        "ak.str.split_pattern",
+        "ak.str.split_pattern_regex",
+        "ak.str.split_whitespace",
+        "ak.str.starts_with",
+        "ak.str.swapcase",
+        "ak.str.title",
+        "ak.str.to_categorical",
+        "ak.str.trim",
+        "ak.str.trim_whitespace",
+        "ak.str.upper",
+        "ak.strings_astype",
+        "ak.sum",
+        "ak.to_arrow",
+        "ak.to_arrow_table",
+        "ak.to_backend",
+        "ak.to_buffers",
+        "ak.to_cudf",
+        "ak.to_cupy",
+        "ak.to_dataframe",
+        "ak.to_feather",
+        "ak.to_jax",
+        "ak.to_json",
+        "ak.to_layout",
+        "ak.to_list",
+        "ak.to_numpy",
+        "ak.to_packed",
+        "ak.to_parquet",
+        "ak.to_parquet_dataset",
+        "ak.to_parquet_row_groups",
+        "ak.to_raggedtensor",
+        "ak.to_rdataframe",
+        "ak.to_regular",
+        "ak.to_safetensors",
+        "ak.to_tensorflow",
+        "ak.to_torch",
+        "ak.transform",
+        "ak.type",
+        "ak.unflatten",
+        "ak.unzip",
+        "ak.validity_error",
+        "ak.values_astype",
+        "ak.var",
+        "ak.where",
+        "ak.with_field",
+        "ak.with_name",
+        "ak.with_named_axis",
+        "ak.with_parameter",
+        "ak.without_field",
+        "ak.without_named_axis",
+        "ak.without_parameters",
+        "ak.zeros_like",
+        "ak.zip",
+        "ak.zip_no_broadcast"
+      ],
+      "results": [
+        {
+          "api": "ak.Array",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              46125,
+              41209,
+              34792,
+              32792,
+              33916,
+              35416,
+              32416
+            ],
+            "median_ns": 34792
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 70483968,
+                "peak_bytes": 70631424,
+                "delta_bytes": 147456,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.Array",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              162625,
+              179959,
+              169625,
+              185667,
+              159125,
+              147917,
+              155250
+            ],
+            "median_ns": 162625
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71696384,
+                "peak_bytes": 71860224,
+                "delta_bytes": 163840,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.Array",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              4278375,
+              4284166,
+              4086709,
+              4255375,
+              4018167,
+              4293208,
+              4089792
+            ],
+            "median_ns": 4255375
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 79708160,
+                "peak_bytes": 82427904,
+                "delta_bytes": 2719744,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.flatten",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              15250,
+              13667,
+              12625,
+              11708,
+              10875,
+              10750,
+              10959
+            ],
+            "median_ns": 11708
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 70467584,
+                "peak_bytes": 70467584,
+                "delta_bytes": 0,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.flatten",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              17709,
+              16834,
+              15417,
+              13542,
+              12584,
+              13084,
+              13416
+            ],
+            "median_ns": 13542
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71991296,
+                "peak_bytes": 71991296,
+                "delta_bytes": 0,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.flatten",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              19292,
+              17917,
+              16750,
+              17208,
+              15708,
+              15542,
+              15916
+            ],
+            "median_ns": 16750
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 82575360,
+                "peak_bytes": 82575360,
+                "delta_bytes": 0,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.str.length",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              61250,
+              57667,
+              54500,
+              58917,
+              47833,
+              47209,
+              46167
+            ],
+            "median_ns": 54500
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72187904,
+                "peak_bytes": 80510976,
+                "delta_bytes": 8323072,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.str.length",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              41708,
+              39417,
+              37916,
+              34500,
+              37708,
+              33667,
+              32666
+            ],
+            "median_ns": 37708
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72417280,
+                "peak_bytes": 80740352,
+                "delta_bytes": 8323072,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.str.length",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              111333,
+              119334,
+              109125,
+              111125,
+              104875,
+              103667,
+              107917
+            ],
+            "median_ns": 109125
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72744960,
+                "peak_bytes": 81559552,
+                "delta_bytes": 8814592,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.sum",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              34125,
+              33250,
+              35625,
+              39500,
+              30833,
+              29084,
+              28167
+            ],
+            "median_ns": 33250
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71008256,
+                "peak_bytes": 71057408,
+                "delta_bytes": 49152,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.sum",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              37250,
+              38542,
+              34041,
+              31792,
+              31125,
+              31208,
+              428833
+            ],
+            "median_ns": 34041
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72007680,
+                "peak_bytes": 72056832,
+                "delta_bytes": 49152,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.sum",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              88291,
+              85250,
+              82291,
+              80458,
+              85333,
+              74125,
+              72875
+            ],
+            "median_ns": 82291
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 81674240,
+                "peak_bytes": 81739776,
+                "delta_bytes": 65536,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.to_list",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              31167,
+              38333,
+              27000,
+              28542,
+              25416,
+              25000,
+              25125
+            ],
+            "median_ns": 27000
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71450624,
+                "peak_bytes": 71483392,
+                "delta_bytes": 32768,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.to_list",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              179208,
+              181792,
+              178917,
+              174542,
+              178708,
+              194333,
+              178125
+            ],
+            "median_ns": 178917
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72351744,
+                "peak_bytes": 72663040,
+                "delta_bytes": 311296,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.to_list",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              6211500,
+              5941667,
+              12465917,
+              6041667,
+              13736541,
+              6048583,
+              5834542
+            ],
+            "median_ns": 6048583
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 81379328,
+                "peak_bytes": 90030080,
+                "delta_bytes": 8650752,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        }
+      ]
+    },
+    {
+      "awkward": "main",
+      "awkward_cpp": "58",
+      "python": "3.12.16",
+      "implementation": "CPython",
+      "platform": "macOS-15.7.3-arm64-arm-64bit",
+      "machine": "arm64",
+      "threads": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "JAX_PLATFORMS": "cpu",
+        "CUDA_VISIBLE_DEVICES": "",
+        "PYTHONHASHSEED": "0"
+      },
+      "packages": {
+        "fastavro": "1.13.1",
+        "fsspec": "2026.9.0",
+        "numpy": "1.26.4",
+        "packaging": "26.3",
+        "pandas": "2.3.3",
+        "pyarrow": "20.0.0",
+        "python-dateutil": "4.0.0",
+        "pytz": "2026.6",
+        "safetensors": "0.8.0",
+        "tzdata": "2026.6"
+      },
+      "apis": [
+        "ak.Array",
+        "ak.Array.Mask",
+        "ak.Array.__array__",
+        "ak.Array.__array_function__",
+        "ak.Array.__array_ufunc__",
+        "ak.Array.__arrow_array__",
+        "ak.Array.__cast_cpp__",
+        "ak.Array.__delitem__",
+        "ak.Array.__dir__",
+        "ak.Array.__getattr__",
+        "ak.Array.__getitem__",
+        "ak.Array.__iter__",
+        "ak.Array.__len__",
+        "ak.Array.__setattr__",
+        "ak.Array.__setitem__",
+        "ak.Array.attrs",
+        "ak.Array.behavior",
+        "ak.Array.cpp_type",
+        "ak.Array.fields",
+        "ak.Array.is_tuple",
+        "ak.Array.layout",
+        "ak.Array.mask",
+        "ak.Array.named_axis",
+        "ak.Array.nbytes",
+        "ak.Array.ndim",
+        "ak.Array.numba_type",
+        "ak.Array.positional_axis",
+        "ak.Array.show",
+        "ak.Array.to_list",
+        "ak.Array.to_numpy",
+        "ak.Array.tolist",
+        "ak.Array.type",
+        "ak.Array.typestr",
+        "ak.ArrayBuilder",
+        "ak.ArrayBuilder.List",
+        "ak.ArrayBuilder.Record",
+        "ak.ArrayBuilder.Tuple",
+        "ak.ArrayBuilder.__array__",
+        "ak.ArrayBuilder.__arrow_array__",
+        "ak.ArrayBuilder.__len__",
+        "ak.ArrayBuilder.append",
+        "ak.ArrayBuilder.attrs",
+        "ak.ArrayBuilder.begin_list",
+        "ak.ArrayBuilder.begin_record",
+        "ak.ArrayBuilder.begin_tuple",
+        "ak.ArrayBuilder.behavior",
+        "ak.ArrayBuilder.boolean",
+        "ak.ArrayBuilder.bytestring",
+        "ak.ArrayBuilder.complex",
+        "ak.ArrayBuilder.datetime",
+        "ak.ArrayBuilder.end_list",
+        "ak.ArrayBuilder.end_record",
+        "ak.ArrayBuilder.end_tuple",
+        "ak.ArrayBuilder.extend",
+        "ak.ArrayBuilder.field",
+        "ak.ArrayBuilder.index",
+        "ak.ArrayBuilder.integer",
+        "ak.ArrayBuilder.list",
+        "ak.ArrayBuilder.null",
+        "ak.ArrayBuilder.numba_type",
+        "ak.ArrayBuilder.real",
+        "ak.ArrayBuilder.record",
+        "ak.ArrayBuilder.show",
+        "ak.ArrayBuilder.snapshot",
+        "ak.ArrayBuilder.string",
+        "ak.ArrayBuilder.timedelta",
+        "ak.ArrayBuilder.to_list",
+        "ak.ArrayBuilder.to_numpy",
+        "ak.ArrayBuilder.tolist",
+        "ak.ArrayBuilder.tuple",
+        "ak.ArrayBuilder.type",
+        "ak.ArrayBuilder.typestr",
+        "ak.Record",
+        "ak.Record.__array_ufunc__",
+        "ak.Record.__delitem__",
+        "ak.Record.__dir__",
+        "ak.Record.__getattr__",
+        "ak.Record.__getitem__",
+        "ak.Record.__setattr__",
+        "ak.Record.__setitem__",
+        "ak.Record.attrs",
+        "ak.Record.behavior",
+        "ak.Record.fields",
+        "ak.Record.is_tuple",
+        "ak.Record.layout",
+        "ak.Record.named_axis",
+        "ak.Record.nbytes",
+        "ak.Record.numba_type",
+        "ak.Record.positional_axis",
+        "ak.Record.show",
+        "ak.Record.to_list",
+        "ak.Record.tolist",
+        "ak.Record.type",
+        "ak.Record.typestr",
+        "ak.all",
+        "ak.almost_equal",
+        "ak.angle",
+        "ak.any",
+        "ak.argcartesian",
+        "ak.argcombinations",
+        "ak.argmax",
+        "ak.argmin",
+        "ak.argsort",
+        "ak.array_equal",
+        "ak.backend",
+        "ak.broadcast_arrays",
+        "ak.broadcast_fields",
+        "ak.cartesian",
+        "ak.categories",
+        "ak.combinations",
+        "ak.concatenate",
+        "ak.copy",
+        "ak.corr",
+        "ak.count",
+        "ak.count_nonzero",
+        "ak.covar",
+        "ak.drop_none",
+        "ak.enforce_type",
+        "ak.fields",
+        "ak.fill_none",
+        "ak.firsts",
+        "ak.flatten",
+        "ak.from_arrow",
+        "ak.from_arrow_schema",
+        "ak.from_avro_file",
+        "ak.from_buffers",
+        "ak.from_categorical",
+        "ak.from_cudf",
+        "ak.from_cupy",
+        "ak.from_dlpack",
+        "ak.from_feather",
+        "ak.from_iter",
+        "ak.from_jax",
+        "ak.from_json",
+        "ak.from_numpy",
+        "ak.from_parquet",
+        "ak.from_raggedtensor",
+        "ak.from_rdataframe",
+        "ak.from_regular",
+        "ak.from_safetensors",
+        "ak.from_tensorflow",
+        "ak.from_torch",
+        "ak.full_like",
+        "ak.imag",
+        "ak.is_categorical",
+        "ak.is_none",
+        "ak.is_tuple",
+        "ak.is_valid",
+        "ak.isclose",
+        "ak.linear_fit",
+        "ak.local_index",
+        "ak.mask",
+        "ak.materialize",
+        "ak.max",
+        "ak.mean",
+        "ak.merge_option_of_records",
+        "ak.merge_union_of_records",
+        "ak.metadata_from_parquet",
+        "ak.min",
+        "ak.mixin_class",
+        "ak.mixin_class_method",
+        "ak.moment",
+        "ak.nan_to_none",
+        "ak.nan_to_num",
+        "ak.nanargmax",
+        "ak.nanargmin",
+        "ak.nanmax",
+        "ak.nanmean",
+        "ak.nanmin",
+        "ak.nanprod",
+        "ak.nanstd",
+        "ak.nansum",
+        "ak.nanvar",
+        "ak.num",
+        "ak.ones_like",
+        "ak.pad_none",
+        "ak.parameters",
+        "ak.prod",
+        "ak.ptp",
+        "ak.ravel",
+        "ak.real",
+        "ak.round",
+        "ak.run_lengths",
+        "ak.singletons",
+        "ak.softmax",
+        "ak.sort",
+        "ak.std",
+        "ak.str.capitalize",
+        "ak.str.center",
+        "ak.str.count_substring",
+        "ak.str.count_substring_regex",
+        "ak.str.ends_with",
+        "ak.str.extract_regex",
+        "ak.str.find_substring",
+        "ak.str.find_substring_regex",
+        "ak.str.index_in",
+        "ak.str.is_alnum",
+        "ak.str.is_alpha",
+        "ak.str.is_ascii",
+        "ak.str.is_decimal",
+        "ak.str.is_digit",
+        "ak.str.is_in",
+        "ak.str.is_lower",
+        "ak.str.is_numeric",
+        "ak.str.is_printable",
+        "ak.str.is_space",
+        "ak.str.is_title",
+        "ak.str.is_upper",
+        "ak.str.join",
+        "ak.str.join_element_wise",
+        "ak.str.length",
+        "ak.str.lower",
+        "ak.str.lpad",
+        "ak.str.ltrim",
+        "ak.str.ltrim_whitespace",
+        "ak.str.match_like",
+        "ak.str.match_substring",
+        "ak.str.match_substring_regex",
+        "ak.str.repeat",
+        "ak.str.replace_slice",
+        "ak.str.replace_substring",
+        "ak.str.replace_substring_regex",
+        "ak.str.reverse",
+        "ak.str.rpad",
+        "ak.str.rtrim",
+        "ak.str.rtrim_whitespace",
+        "ak.str.slice",
+        "ak.str.split_pattern",
+        "ak.str.split_pattern_regex",
+        "ak.str.split_whitespace",
+        "ak.str.starts_with",
+        "ak.str.swapcase",
+        "ak.str.title",
+        "ak.str.to_categorical",
+        "ak.str.trim",
+        "ak.str.trim_whitespace",
+        "ak.str.upper",
+        "ak.strings_astype",
+        "ak.sum",
+        "ak.to_arrow",
+        "ak.to_arrow_table",
+        "ak.to_backend",
+        "ak.to_buffers",
+        "ak.to_cudf",
+        "ak.to_cupy",
+        "ak.to_dataframe",
+        "ak.to_feather",
+        "ak.to_jax",
+        "ak.to_json",
+        "ak.to_layout",
+        "ak.to_list",
+        "ak.to_numpy",
+        "ak.to_packed",
+        "ak.to_parquet",
+        "ak.to_parquet_dataset",
+        "ak.to_parquet_row_groups",
+        "ak.to_raggedtensor",
+        "ak.to_rdataframe",
+        "ak.to_regular",
+        "ak.to_safetensors",
+        "ak.to_tensorflow",
+        "ak.to_torch",
+        "ak.transform",
+        "ak.type",
+        "ak.unflatten",
+        "ak.unzip",
+        "ak.validity_error",
+        "ak.values_astype",
+        "ak.var",
+        "ak.where",
+        "ak.with_field",
+        "ak.with_name",
+        "ak.with_named_axis",
+        "ak.with_parameter",
+        "ak.without_field",
+        "ak.without_named_axis",
+        "ak.without_parameters",
+        "ak.zeros_like",
+        "ak.zip",
+        "ak.zip_no_broadcast"
+      ],
+      "awkward_version": "2.15.0",
+      "source_commit": "ba8ff569ff54dd2a45a5fa6c32a59431cdb78787",
+      "results": [
+        {
+          "api": "ak.Array",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              37916,
+              43000,
+              35458,
+              32958,
+              32875,
+              32292,
+              32667
+            ],
+            "median_ns": 32958
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72564736,
+                "peak_bytes": 72695808,
+                "delta_bytes": 131072,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.Array",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              174000,
+              173708,
+              169166,
+              188708,
+              176084,
+              199625,
+              208958
+            ],
+            "median_ns": 176084
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71745536,
+                "peak_bytes": 71925760,
+                "delta_bytes": 180224,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.Array",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              4778834,
+              4827583,
+              4885625,
+              4738750,
+              5109166,
+              4889334,
+              5065959
+            ],
+            "median_ns": 4885625
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 79527936,
+                "peak_bytes": 81870848,
+                "delta_bytes": 2342912,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.flatten",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              15625,
+              13625,
+              12500,
+              11834,
+              10916,
+              12083,
+              15667
+            ],
+            "median_ns": 12500
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72122368,
+                "peak_bytes": 72122368,
+                "delta_bytes": 0,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.flatten",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              14666,
+              13667,
+              12542,
+              12542,
+              11333,
+              12125,
+              11917
+            ],
+            "median_ns": 12542
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 73187328,
+                "peak_bytes": 73187328,
+                "delta_bytes": 0,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.flatten",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              19500,
+              17500,
+              16292,
+              16125,
+              15166,
+              15292,
+              15291
+            ],
+            "median_ns": 16125
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 82247680,
+                "peak_bytes": 82247680,
+                "delta_bytes": 0,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.str.length",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              56458,
+              54208,
+              52917,
+              46875,
+              43292,
+              47459,
+              50500
+            ],
+            "median_ns": 50500
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71319552,
+                "peak_bytes": 79659008,
+                "delta_bytes": 8339456,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.str.length",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              43625,
+              40333,
+              37792,
+              40208,
+              46625,
+              39041,
+              35791
+            ],
+            "median_ns": 40208
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71958528,
+                "peak_bytes": 80297984,
+                "delta_bytes": 8339456,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.str.length",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              106625,
+              139000,
+              105791,
+              102541,
+              101458,
+              99458,
+              109667
+            ],
+            "median_ns": 105791
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72581120,
+                "peak_bytes": 81477632,
+                "delta_bytes": 8896512,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.sum",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              46458,
+              45833,
+              37750,
+              37875,
+              34917,
+              33959,
+              32458
+            ],
+            "median_ns": 37750
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72564736,
+                "peak_bytes": 72613888,
+                "delta_bytes": 49152,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.sum",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              37042,
+              35166,
+              32333,
+              30750,
+              30125,
+              32625,
+              487500
+            ],
+            "median_ns": 32625
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 71778304,
+                "peak_bytes": 71827456,
+                "delta_bytes": 49152,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.sum",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              87542,
+              98000,
+              90042,
+              83666,
+              83834,
+              79625,
+              102667
+            ],
+            "median_ns": 87542
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 81297408,
+                "peak_bytes": 81608704,
+                "delta_bytes": 311296,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.to_list",
+          "size": 32,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              33667,
+              30208,
+              26583,
+              25750,
+              25750,
+              29833,
+              26792
+            ],
+            "median_ns": 26792
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72204288,
+                "peak_bytes": 72237056,
+                "delta_bytes": 32768,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.to_list",
+          "size": 1024,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              173000,
+              168291,
+              171167,
+              178709,
+              161625,
+              173000,
+              166584
+            ],
+            "median_ns": 171167
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 72597504,
+                "peak_bytes": 72941568,
+                "delta_bytes": 344064,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        },
+        {
+          "api": "ak.to_list",
+          "size": 32768,
+          "timing": {
+            "status": "measured",
+            "samples_ns": [
+              6252083,
+              5905667,
+              12014125,
+              6286500,
+              12797875,
+              6061750,
+              5738750
+            ],
+            "median_ns": 6252083
+          },
+          "memory": [
+            {
+              "status": "measured",
+              "sample": {
+                "baseline_bytes": 81559552,
+                "peak_bytes": 90243072,
+                "delta_bytes": 8683520,
+                "method": "process_high_water_delta"
+              }
+            }
+          ],
+          "status": "measured"
+        }
+      ]
+    }
+  ]
+}

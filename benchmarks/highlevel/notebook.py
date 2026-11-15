@@ -14,7 +14,6 @@ def _():
     import sys
     from html import escape
     from pathlib import Path
-    from urllib.parse import quote
 
     import marimo as mo
     import plotly.graph_objects as go
@@ -34,7 +33,7 @@ def _():
         sys.path.insert(0, str(repository))
 
     from benchmarks.highlevel.cases import fixture_size_label
-    from benchmarks.highlevel.report import STATUS_LABELS, build_comparison
+    from benchmarks.highlevel.report import STATUS_LABELS, build_comparison, release_url
 
     return (
         Path,
@@ -45,7 +44,7 @@ def _():
         go,
         json,
         mo,
-        quote,
+        release_url,
         repository,
         fixture_size_label,
     )
@@ -99,7 +98,13 @@ def _(Path, build_comparison, json, mo, repository, upload):
 
 @app.cell
 def _(Version, initial, mo):
-    versions = sorted(initial["coverage"], key=Version)
+    versions = sorted(
+        initial["coverage"],
+        key=lambda version: (
+            version == "main",
+            Version("0" if version == "main" else version),
+        ),
+    )
     _apis = sorted({row["api"] for row in initial["rows"]})
     baseline = mo.ui.dropdown(versions, value=initial["baseline"], label="Baseline")
     operation = mo.ui.dropdown(
@@ -307,8 +312,8 @@ def _(active_api, comparison, sizes, versions):
 
 
 @app.cell
-def _(escape, fixture_size_label, go, quote):
-    def make_plot(rows, versions, baseline, *, metric, relative):
+def _(escape, fixture_size_label, go, release_url):
+    def make_plot(rows, versions, baseline, *, metric, relative, source_commits=None):
         time = metric == "time"
         unit = "%" if relative else "µs" if time else "KiB"
         field = "time_ns" if time else "rss_bytes"
@@ -358,9 +363,9 @@ def _(escape, fixture_size_label, go, quote):
             return None
         title = "Runtime" if time else "Peak RSS delta"
         axis = f"Change from baseline ({unit})" if relative else f"Median ({unit})"
-        release_notes = "https://github.com/scikit-hep/awkward/releases/tag"
+        source_commits = source_commits or {}
         release_links = [
-            f'<a href="{release_notes}/v{quote(version, safe="")}" target="_blank">'
+            f'<a href="{escape(release_url(version, source_commits.get(version)))}" target="_blank">'
             f"<u>{escape(version)}</u></a>"
             for version in versions
         ]
@@ -390,13 +395,26 @@ def _(escape, fixture_size_label, go, quote):
 
 
 @app.cell
-def _(baseline, display_mode, make_plot, mo, selected, versions):
+def _(baseline, display_mode, make_plot, mo, run, selected, versions):
+    _commits = {
+        release["awkward"]: release.get("source_commit") for release in run["releases"]
+    }
     _relative = display_mode.value == "Change (%)"
     _runtime = make_plot(
-        selected, versions, baseline.value, metric="time", relative=_relative
+        selected,
+        versions,
+        baseline.value,
+        metric="time",
+        relative=_relative,
+        source_commits=_commits,
     )
     _memory = make_plot(
-        selected, versions, baseline.value, metric="rss", relative=_relative
+        selected,
+        versions,
+        baseline.value,
+        metric="rss",
+        relative=_relative,
+        source_commits=_commits,
     )
     mo.vstack(
         [
@@ -409,7 +427,7 @@ def _(baseline, display_mode, make_plot, mo, selected, versions):
                 "No comparable RSS values for this selection.", kind="info"
             ),
             mo.md(
-                "Select a release label to open its release notes. "
+                "Select a release label to open its notes or source commit. "
                 "Runtime whiskers show the observed minimum and maximum. "
                 "A zero RSS delta can mean the operation stayed below the setup "
                 "high-water mark. Positive changes mean higher time or RSS."
