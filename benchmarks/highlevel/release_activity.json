@@ -1,42 +1,322 @@
 {
   "2.6.0": {
     "merged_prs_listed": 26,
-    "new_contributors_listed": 1
+    "new_contributors_listed": 1,
+    "top_by_lines_changed": [
+      {
+        "login": "ManasviGoyal",
+        "count": 9540
+      },
+      {
+        "login": "zbilodea",
+        "count": 589
+      },
+      {
+        "login": "jpivarski",
+        "count": 76
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "ManasviGoyal",
+        "count": 31
+      },
+      {
+        "login": "zbilodea",
+        "count": 23
+      },
+      {
+        "login": "jpivarski",
+        "count": 13
+      }
+    ]
   },
   "2.8.0": {
     "merged_prs_listed": 24,
-    "new_contributors_listed": 2
+    "new_contributors_listed": 2,
+    "top_by_lines_changed": [
+      {
+        "login": "ikrommyd",
+        "count": 7484
+      },
+      {
+        "login": "pfackeldey",
+        "count": 297
+      },
+      {
+        "login": "ianna",
+        "count": 44
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "ikrommyd",
+        "count": 151
+      },
+      {
+        "login": "pfackeldey",
+        "count": 19
+      },
+      {
+        "login": "ianna",
+        "count": 7
+      }
+    ]
   },
   "2.9.0": {
     "merged_prs_listed": 18,
-    "new_contributors_listed": 0
+    "new_contributors_listed": 0,
+    "top_by_lines_changed": [
+      {
+        "login": "ikrommyd",
+        "count": 579
+      },
+      {
+        "login": "henryiii",
+        "count": 417
+      },
+      {
+        "login": "aashirvad08",
+        "count": 388
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "ikrommyd",
+        "count": 28
+      },
+      {
+        "login": "aashirvad08",
+        "count": 26
+      },
+      {
+        "login": "ianna",
+        "count": 14
+      }
+    ]
   },
   "2.9.1": {
     "merged_prs_listed": 90,
-    "new_contributors_listed": 2
+    "new_contributors_listed": 2,
+    "top_by_lines_changed": [
+      {
+        "login": "maxymnaumchyk",
+        "count": 3404
+      },
+      {
+        "login": "ikrommyd",
+        "count": 2487
+      },
+      {
+        "login": "ianna",
+        "count": 2250
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "ikrommyd",
+        "count": 156
+      },
+      {
+        "login": "maxymnaumchyk",
+        "count": 145
+      },
+      {
+        "login": "ianna",
+        "count": 70
+      }
+    ]
   },
   "2.10.0": {
     "merged_prs_listed": 38,
-    "new_contributors_listed": 2
+    "new_contributors_listed": 2,
+    "top_by_lines_changed": [
+      {
+        "login": "ianna",
+        "count": 79089
+      },
+      {
+        "login": "henryiii",
+        "count": 1936
+      },
+      {
+        "login": "maxymnaumchyk",
+        "count": 1023
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "henryiii",
+        "count": 70
+      },
+      {
+        "login": "ianna",
+        "count": 45
+      },
+      {
+        "login": "maxymnaumchyk",
+        "count": 27
+      }
+    ]
   },
   "2.11.0": {
     "merged_prs_listed": 24,
-    "new_contributors_listed": 1
+    "new_contributors_listed": 1,
+    "top_by_lines_changed": [
+      {
+        "login": "ianna",
+        "count": 6789
+      },
+      {
+        "login": "henryiii",
+        "count": 1414
+      },
+      {
+        "login": "ikrommyd",
+        "count": 308
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "henryiii",
+        "count": 38
+      },
+      {
+        "login": "ianna",
+        "count": 35
+      },
+      {
+        "login": "ikrommyd",
+        "count": 9
+      }
+    ]
   },
   "2.12.0": {
     "merged_prs_listed": 25,
-    "new_contributors_listed": 0
+    "new_contributors_listed": 0,
+    "top_by_lines_changed": [
+      {
+        "login": "TaiSakuma",
+        "count": 3923
+      },
+      {
+        "login": "ianna",
+        "count": 3166
+      },
+      {
+        "login": "henryiii",
+        "count": 261
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "ianna",
+        "count": 64
+      },
+      {
+        "login": "TaiSakuma",
+        "count": 37
+      },
+      {
+        "login": "henryiii",
+        "count": 9
+      }
+    ]
   },
   "2.13.0": {
     "merged_prs_listed": 23,
-    "new_contributors_listed": 0
+    "new_contributors_listed": 0,
+    "top_by_lines_changed": [
+      {
+        "login": "TaiSakuma",
+        "count": 4071
+      },
+      {
+        "login": "ianna",
+        "count": 2183
+      },
+      {
+        "login": "ariostas",
+        "count": 19
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "TaiSakuma",
+        "count": 31
+      },
+      {
+        "login": "ianna",
+        "count": 22
+      },
+      {
+        "login": "ariostas",
+        "count": 3
+      }
+    ]
   },
   "2.14.0": {
     "merged_prs_listed": 32,
-    "new_contributors_listed": 2
+    "new_contributors_listed": 2,
+    "top_by_lines_changed": [
+      {
+        "login": "aashirvad08",
+        "count": 4305
+      },
+      {
+        "login": "TaiSakuma",
+        "count": 1243
+      },
+      {
+        "login": "ariostas",
+        "count": 357
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "aashirvad08",
+        "count": 35
+      },
+      {
+        "login": "TaiSakuma",
+        "count": 33
+      },
+      {
+        "login": "ianna",
+        "count": 13
+      }
+    ]
   },
   "2.15.0": {
     "merged_prs_listed": 89,
-    "new_contributors_listed": 11
+    "new_contributors_listed": 11,
+    "top_by_lines_changed": [
+      {
+        "login": "ianna",
+        "count": 9289
+      },
+      {
+        "login": "ikrommyd",
+        "count": 3223
+      },
+      {
+        "login": "ariostas",
+        "count": 1287
+      }
+    ],
+    "top_by_commits": [
+      {
+        "login": "ianna",
+        "count": 117
+      },
+      {
+        "login": "ikrommyd",
+        "count": 111
+      },
+      {
+        "login": "ariostas",
+        "count": 22
+      }
+    ]
   }
 }
