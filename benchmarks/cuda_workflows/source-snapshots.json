@@ -1,0 +1,95 @@
+{
+  "snapshots": [
+    {
+      "file": "ewkcoffea-della/context_errors.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "9cd52dcd968750f581d82927096c8ef49243e9fa",
+      "source": "src/awkward/_errors.py",
+      "sha256": "5189c906430035f865a4cab6bcd52a98f650480b8f42a42c12c30c6f4bff1f14"
+    },
+    {
+      "file": "indexed-fill-runtime-validation/_indexed_fill.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7bcadcd8b0d1b60207b833d8d252e09e9d83a1d3",
+      "source": "src/awkward/_connect/cuda/_indexed_fill.py",
+      "sha256": "095a508fc356c5b2e5f77395aceb09e2adb3b492a5c857bd33e9c292e22bfbb5"
+    },
+    {
+      "file": "ewk-fill-cache-integration/_indexed_fill.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "6c88db479eca91ec2c701f1cd0b6d5f0cb142c06",
+      "source": "src/awkward/_connect/cuda/_indexed_fill.py",
+      "sha256": "fd58948d9a7c2f5152560401cce96ad7b0d60662ce05119be74f80f87d60c372"
+    },
+    {
+      "file": "ewk-fill-cache-integration/_compute_cache.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "6c88db479eca91ec2c701f1cd0b6d5f0cb142c06",
+      "source": "src/awkward/_connect/cuda/_compute_cache.py",
+      "sha256": "0f9dcf8dadee816958b05dc2c936a5601f3607be9a9904176d6630ceec3dce1a"
+    },
+    {
+      "file": "awkward-cccl-studies/_segment_algorithms.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/_segment_algorithms.py",
+      "sha256": "dac490cab3aa7a912c3d941c8e70ab8c66a39f2f79f5eb153cfdcf4a1f6690a0"
+    },
+    {
+      "file": "awkward-cccl-studies/bench_lazy_fusion.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/bench_lazy_fusion.py",
+      "sha256": "a72186c683cd6cad8eaaa03e66ce71e27db30a6a3dd74464cb02361663bb1951"
+    },
+    {
+      "file": "awkward-cccl-studies/bench_reduce_bool.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/bench_reduce_bool.py",
+      "sha256": "81c49402416a892aca9c0ef60cbfdff5286dbcc3f6493b1d7340515e683dc863"
+    },
+    {
+      "file": "awkward-cccl-studies/benchmark.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/benchmark.py",
+      "sha256": "9c0bb0b39d9ea2f8a63c40cf3688755d011ba7dff215351096114c29cf217105"
+    },
+    {
+      "file": "awkward-cccl-studies/helpers.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/helpers.py",
+      "sha256": "713c821988c53711f892741777441d408be510880d30d8d6dc53634d3e72180f"
+    },
+    {
+      "file": "awkward-cccl-studies/playground-cccl-with-ir.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/playground-cccl-with-ir.py",
+      "sha256": "90b5e9f07fa3c476fe1eda3f95ca4c6b3f2840938785a0bd86f5762f86bbc059"
+    },
+    {
+      "file": "awkward-cccl-studies/playground.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/playground.py",
+      "sha256": "5bf710b60c0683304bc05a32dc3032f24b04f5a57b739edab9b166c04186569b"
+    },
+    {
+      "file": "awkward-cccl-studies/probe_fusion_mechanism.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/probe_fusion_mechanism.py",
+      "sha256": "3facd8f187cd105fe934bf7c5769a41819bb9c52abd724841e3eee4a00f6b182"
+    },
+    {
+      "file": "awkward-cccl-studies/profile_cccl.py",
+      "repository": "https://github.com/scikit-hep/awkward",
+      "commit": "7c91097ef05b3df7fb37ce2d23268d45465551d0",
+      "source": "studies/cccl/profile_cccl.py",
+      "sha256": "fe09425d59bcdca982712d93277437368f68185f52704a4b48481f67d5c317d8"
+    }
+  ]
+}

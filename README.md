@@ -11,6 +11,13 @@ synchronization, data transfers, and temporary allocations. Reports should
 preserve the source revisions and environment information needed to reproduce
 results. Benchmark tooling alone does not establish a speedup or backend parity.
 
+## CUDA benchmarks
+
+- [Kernel migrations and completed public operations](benchmarks/cuda_migrations/README.md)
+- [Selectable CPU/RawKernel/compute parity matrix](benchmarks/cuda_matrix/README.md)
+- [Della workflow, startup, cache and persistent-worker harnesses](benchmarks/cuda_workflows/README.md)
+- [Standalone cuda.compute dispatch reproducer](reproducers/README.md)
+
 ## Explore release benchmarks in Marimo
 
 [![Open in Marimo](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/ianna/awkward-matrix/blob/main/benchmarks/highlevel/notebook.py/wasm)
