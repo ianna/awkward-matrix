@@ -11,6 +11,8 @@ synchronization, data transfers, and temporary allocations. Reports should
 preserve the source revisions and environment information needed to reproduce
 results. Benchmark tooling alone does not establish a speedup or backend parity.
 
+AI agents should read [AGENTS.md](AGENTS.md) before running or changing the harnesses.
+
 ## CUDA benchmarks
 
 - [Kernel migrations and completed public operations](benchmarks/cuda_migrations/README.md)
